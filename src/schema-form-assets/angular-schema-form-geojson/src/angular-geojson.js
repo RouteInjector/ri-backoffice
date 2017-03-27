@@ -13,9 +13,12 @@
                     };
                 }],
                 link: function (scope, element, attrs, ngModel) {
-
                     if (ngModel) {
                         ngModel.$render = function () {
+                            if (!ngModel.$viewValue) {
+                                return;
+                            }
+
                             scope.center = {
                                 lat: ngModel.$viewValue.coordinates[1],
                                 lng: ngModel.$viewValue.coordinates[0],
