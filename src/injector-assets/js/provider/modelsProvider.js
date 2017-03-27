@@ -390,6 +390,9 @@
                         form.setAttribute("method", method);
                         form.setAttribute("action", path + "?token=" + $http.defaults.headers.common.Authorization.replace("BEARER ", ""));
 
+                        // Open result into a new tab/window:
+                        form.setAttribute("target", "_blank");
+
                         for (var key in params) {
 
                             if (params.hasOwnProperty(key)) {
