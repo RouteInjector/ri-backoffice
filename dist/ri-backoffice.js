@@ -711,6 +711,19 @@
                         });
                     };
 
+                    service.uploadToGallery = function (file, cb) {
+                        var path = service.getGalleryPath();
+                        Upload.upload({
+                            url: path,
+                            file: file,
+                            fileFormDataName: ['file[]']
+                        }).progress(function (evt) {
+                            console.log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
+                        }).success(function (data, status, headers, config) {
+                            cb(data);
+                        });
+                    }
+
                     service.uploadImage = function (modelName, id, fieldName, index, image, cb) {
                         service.getModel(modelName, function (data) {
                             var path = (data.config.path || modelName);
@@ -901,6 +914,14 @@
 
                     };
 
+                    service.galleryDelete = function (path, cb) {
+                        if (!service.isGalleryEnabled())
+                            return
+                        $http.delete(path).success(function (data) {
+                            cb(data);
+                        });
+                    };
+
                     service.galleryDeleteByPath = function (path, cb) {
                         if (!service.isGalleryEnabled())
                             return
@@ -942,13 +963,13 @@
 
                         // Look for the element as a string and return the position if found
                         var i = retElem.denormalize.indexOf(element);
-                        if(i>-1) {
+                        if (i > -1) {
                             return i;
                         }
 
                         // Look for the element as an object with target and source, return the position if found
-                        for(i=0;i<retElem.denormalize.length;i++) {
-                            if(typeof(retElem.denormalize[i])==='object' && retElem.denormalize[i].target == element) {
+                        for (i = 0; i < retElem.denormalize.length; i++) {
+                            if (typeof(retElem.denormalize[i]) === 'object' && retElem.denormalize[i].target == element) {
                                 ret = i;
                             }
                         }
@@ -978,7 +999,7 @@
                                     var target;
 
                                     var denormalizedField = retElem.denormalize[denormalizedFieldPosition];
-                                    if(typeof(denormalizedField)==='string') {
+                                    if (typeof(denormalizedField) === 'string') {
                                         source = denormalizedField;
                                         target = denormalizedField;
                                     } else {
