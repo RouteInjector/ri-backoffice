@@ -1,4 +1,4 @@
-angular.module("schemaForm").run(["$templateCache", function($templateCache) {$templateCache.put("directives/decorators/bootstrap/button/button.html","<div class=\"form-group\">\r\n    <button bk-button type=\"button\" ng-click=\"click()\" ng-show=\"showTitle()\" class=\"btn\">{{form.title}}</button>\r\n</div>");}]);
+angular.module("schemaForm").run(["$templateCache", function($templateCache) {$templateCache.put("directives/decorators/bootstrap/button/button.html","<div class=\"form-group {{form.htmlClass}}\">\r\n    <button bk-button type=\"button\" ng-click=\"click()\" ng-show=\"showTitle()\" class=\"btn\">{{form.title}}</button>\r\n</div>\r\n");}]);
 angular.module('schemaForm').directive('bkButton', ['$http', '$routeParams', 'models', function ($http, models) {
 
     return {
