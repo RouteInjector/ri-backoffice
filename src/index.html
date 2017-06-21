@@ -46,13 +46,11 @@
     <nav class="page-header navbar navbar-fixed-top">
         <div class="page-header-inner">
             <div class="page-logo">
-                <a class="navbar-brand" href="#/"><img ng-if="configs.app.logo" alt="Brand" height="20"
-                                                       ng-src="{{configs.app.logo}}">
+                <a class="navbar-brand" href="#/"><img ng-if="configs.app.logo" alt="Brand" height="20" ng-src="{{configs.app.logo}}">
                     <span>{{configs.app.name}}</span>
                 </a>
             </div>
-            <a href="javascript:;" class="menu-toggler responsive-toggler" data-toggle="collapse"
-               data-target=".navbar-collapse">
+            <a href="javascript:;" class="menu-toggler responsive-toggler" data-toggle="collapse" ng-click="toggleMenu()">
                 <i class="glyphicon glyphicon-menu-hamburger"></i>
             </a>
 
@@ -69,7 +67,7 @@
                             <li ng-if="!locked" ng-click="removeShard()"><a>{{'NAVBAR.REMOVE_SHARD'|translate}}</a></li>
                         </ul>
                     </li>
-                    <li class="dropdown">
+                    <li>
                         <p ng-if="user && allowedUser" class="navbar-text">
                             {{'NAVBAR.SIGNED_IN_AS'|translate}}{{user.login}}
                             ({{user.role}})</p>

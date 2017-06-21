@@ -2,7 +2,7 @@
     'use strict';
 
     angular.module('injectorApp')
-        .controller('NavbarController', function ($scope, $location, loginProvider) {
+        .controller('NavbarController', function ($rootScope, $scope, $location, loginProvider) {
             var navbar = function () {
                 loginProvider.getUser(function (user) {
                     $scope.user = user;
@@ -16,6 +16,10 @@
             $scope.logout = function () {
                 loginProvider.logout();
                 $location.path('/logout');
+            };
+
+            $scope.toggleMenu = function () {
+                $rootScope.$broadcast('collapse-menu');
             };
         });
 }());

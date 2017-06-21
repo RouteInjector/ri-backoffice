@@ -30,6 +30,11 @@
                 });
             });
 
+            $scope.isMenuCollapsed = true;
+
+            $scope.$on('collapse-menu', function (event) {
+                $scope.isMenuCollapsed = !$scope.isMenuCollapsed;
+            });
 
             $scope.pretty = function pretty(str) {
                 return common.prettifyTitle(str);

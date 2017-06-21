@@ -15,6 +15,9 @@ Page sidebar
 .page-sidebar,
 .page-sidebar-closed.page-sidebar-fixed .page-sidebar:hover {
 	background-color:$bg-color;
+	width: 100%;
+	z-index: 10;
+
 	&.navbar-collapse {
 		padding: 0;
 		box-shadow: none;

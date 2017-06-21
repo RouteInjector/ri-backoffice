@@ -418,3 +418,11 @@ Page Header
     position: absolute;
   }*/
 }
+
+.navbar-text {
+  display: none;
+
+  @media (min-width: 991px) {
+    display: block;
+  }
+}

@@ -70,6 +70,8 @@
                         } else if (conf.url) {
                             $window.location.href = conf.url;
                         }
+
+                        $scope.isMenuCollapsed = true;
                     };
 
                     $scope.isInstanceOf = function (obj) {

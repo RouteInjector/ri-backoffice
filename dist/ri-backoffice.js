@@ -1781,6 +1781,8 @@
                         } else if (conf.url) {
                             $window.location.href = conf.url;
                         }
+
+                        $scope.isMenuCollapsed = true;
                     };
 
                     $scope.isInstanceOf = function (obj) {
@@ -3012,6 +3014,11 @@ function orderKeys(obj) {
                 });
             });
 
+            $scope.isMenuCollapsed = true;
+
+            $scope.$on('collapse-menu', function (event) {
+                $scope.isMenuCollapsed = !$scope.isMenuCollapsed;
+            });
 
             $scope.pretty = function pretty(str) {
                 return common.prettifyTitle(str);
@@ -3226,7 +3233,7 @@ function orderKeys(obj) {
     'use strict';
 
     angular.module('injectorApp')
-        .controller('NavbarController', ['$scope', '$location', 'loginProvider', function ($scope, $location, loginProvider) {
+        .controller('NavbarController', ['$rootScope', '$scope', '$location', 'loginProvider', function ($rootScope, $scope, $location, loginProvider) {
             var navbar = function () {
                 loginProvider.getUser(function (user) {
                     $scope.user = user;
@@ -3240,6 +3247,10 @@ function orderKeys(obj) {
             $scope.logout = function () {
                 loginProvider.logout();
                 $location.path('/logout');
+            };
+
+            $scope.toggleMenu = function () {
+                $rootScope.$broadcast('collapse-menu');
             };
         }]);
 }());
