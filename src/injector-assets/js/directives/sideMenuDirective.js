@@ -133,7 +133,11 @@ function orderKeys(obj) {
     }
 
     for (i = 0; i < keys.length; i++) {
-        obj[keys[i]] = after[keys[i]];
+        if(Object.keys(after[keys[i]]).length > 1){
+            obj[keys[i]] = orderKeys(after[keys[i]]);
+        } else {
+            obj[keys[i]] = after[keys[i]];
+        }
     }
     return obj;
 }
