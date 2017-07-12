@@ -2,7 +2,7 @@
     'use strict';
     var app = angular.module('injectorApp', ['ngRoute', 'ngBiscuit', 'schemaForm', 'datePicker', 'ui.select',
             'ui.ace', 'ui.codemirror', 'ui.bootstrap', 'ngFileUpload', 'ngDroplet', 'punchCard', 'nvd3ChartDirectives', 'flash', 'ngDialog', 'angular-loading-bar',
-            'pascalprecht.translate', 'ngCookies', 'nemLogging', 'ui-leaflet'],
+            'pascalprecht.translate', 'ngCookies', 'nemLogging', 'ui-leaflet', 'angular-toArrayFilter'],
         function ($rootScopeProvider) {
             $rootScopeProvider.digestTtl(15);
         })

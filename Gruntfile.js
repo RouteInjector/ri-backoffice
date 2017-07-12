@@ -187,6 +187,7 @@ module.exports = function (grunt) {
                             '<%= config.bowerFolder %>codemirror/addon/fold/brace-fold.js',
                             '<%= config.bowerFolder %>spectrum/spectrum.js',
                             '<%= config.bowerFolder %>spectrum/i18n/jquery.spectrum-sv.js',
+                            '<%= config.bowerFolder %>angular-toArrayFilter/toArrayFilter.js',
                             '<%= config.srcPath %>schema-form-assets/angular-schema-form-select2/dist/bootstrap-select2.js',
                             '<%= config.srcPath %>schema-form-assets/angular-schema-form-simple-select2/dist/bootstrap-simple-select2.js',
                             '<%= config.srcPath %>schema-form-assets/angular-schema-form-datetimepicker/dist/bootstrap-datetimepicker.js',

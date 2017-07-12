@@ -12,11 +12,11 @@
             </tr>
             </thead>
             <tbody>
-            <tr ng-repeat="(schemaName, schemaConf) in schemas">
+            <tr ng-repeat="schema in schemas | toArray | orderBy : '$key'">
                 <td>
-                    <a ng-href="{{schemaHREF(schemaName, schemaConf)}}">{{pretty(schemaName)}}</a>
+                    <a ng-href="{{schemaHREF(schema.$key, schema)}}">{{pretty(schema.$key)}}</a>
                 </td>
-                <td><a ng-if="!schemaConf.isSingle" class="btn btn-primary btn-sm" href="#/model/{{schemaName}}/new">{{'MODELS.TABLE.CREATE'|translate}}</a></td>
+                <td><a ng-if="!schemaConf.isSingle" class="btn btn-primary btn-sm" href="#/model/{{schema.$key}}/new">{{'MODELS.TABLE.CREATE'|translate}}</a></td>
             </tr>
             </tbody>
         </table>
