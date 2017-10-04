@@ -44,7 +44,8 @@
                                         } else {
                                             config.clickTo = "model/" + schema;
                                         }
-                                        $scope.sections.add(config.section, schema, config);
+                                        var menuTitle = config.title || schema;
+                                        $scope.sections.add(config.section, menuTitle, config);
                                     }
                                 });
                             });
