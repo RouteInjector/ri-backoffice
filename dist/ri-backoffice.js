@@ -1755,7 +1755,8 @@
                                         } else {
                                             config.clickTo = "model/" + schema;
                                         }
-                                        $scope.sections.add(config.section, schema, config);
+                                        var menuTitle = config.title || schema;
+                                        $scope.sections.add(config.section, menuTitle, config);
                                     }
                                 });
                             });
@@ -3147,7 +3148,7 @@ function orderKeys(obj) {
                     } else {
                         model = schema;
                     }
-                    var url = "#/model/" + model + "/update/" + encodeURIComponent($scope.id(element));
+                    var url = "#/model/" + model + "/update/" + encodeURIComponent(encodeURIComponent($scope.id(element)));
                     if ($scope.hasShard(element)) {
                         url += "/" + encodeURIComponent($scope.shard(element));
                     }
