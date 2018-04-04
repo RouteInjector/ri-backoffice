@@ -36,7 +36,7 @@
     "angular-route": "1.4.2",
     "angular-sanitize": "1.5.8",
     "ng-biscuit": "0.2.1",
-    "angular-schema-form": "0.8.4",
+    "angular-schema-form": "https://github.com/Abaena/angular-schema-form.git#master",
     "angular-ui-select": "0.19.6",
     "angular-ui-ace": "bower",
     "angular-ui-sortable": "0.15.0",
