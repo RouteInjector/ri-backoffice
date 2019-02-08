@@ -1,6 +1,6 @@
 {
   "name": "ri-backoffice",
-  "version": "2.1.19",
+  "version": "2.1.20",
   "description": "Administration panel for route-injector package",
   "author": "Gerard Solé",
   "contributors": [
