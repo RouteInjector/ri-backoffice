@@ -298,6 +298,7 @@ module.exports = function (grunt) {
                     '<%= config.bowerFolder %>angular-simple-logger/dist/angular-simple-logger.min.js',
                     '<%= config.bowerFolder %>leaflet/dist/leaflet.js',
                     '<%= config.bowerFolder %>ui-leaflet/dist/ui-leaflet.min.js',
+                    '<%= config.bowerFolder %>moment/min/moment-with-locales.min.js',
 
                     '<%= config.distFolder %><%= config.appName %>-angular-libs.min.temp.js',
                 ],
@@ -341,6 +342,7 @@ module.exports = function (grunt) {
                     '<%= config.bowerFolder %>angular-simple-logger/dist/angular-simple-logger.min.js',
                     '<%= config.bowerFolder %>leaflet/dist/leaflet.js',
                     '<%= config.bowerFolder %>ui-leaflet/dist/ui-leaflet.min.js',
+                    '<%= config.bowerFolder %>moment/min/moment-with-locales.min.js',
 
                     '<%= config.distFolder %><%= config.appName %>-angular-libs.js',
                 ],

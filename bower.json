@@ -69,7 +69,8 @@
     "angular-translate-storage-local": "2.13.1",
     "ui-leaflet": "2.0.0",
     "angular-simple-logger": "0.1.7",
-    "angular-toArrayFilter": "^1.0.1"
+    "angular-toArrayFilter": "^1.0.1",
+    "moment": "^2.24.0"
   },
   "resolutions": {
     "angular": "1.4.2",
