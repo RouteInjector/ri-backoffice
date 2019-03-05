@@ -1,22 +1,17 @@
 sudo: false
-
 language: node_js
-
 node_js:
-  - '6'
-
+- '6'
 script:
-  - ./command.sh install
-
+- "./command.sh install"
 deploy:
   provider: npm
-  email: g.sole.ca@gmail.com
+  email: j.lopez.r@gmail.com
   api_key:
-    secure: BXTlcAY7FJmOLgg+tQlBWcOpleSJMluG1oOx3oPhkXJWX62uS3K3FbK+D8PTYGzBBp8wbASBVB1FlvTX0PnqdBo7LZGfj/gx46/pki3ye21B5TcI/MKrn4si/YI5p8PE0Rr6PC1ESFezGsaHRgZ+lc8rK0YSLcCN2ILlwt75DBOQ5z8sQsLTpoci79IXrsNLcoXcd/B78KCZcD8NEvEZSEsUl0cRiUn2oeT45hy7zhwTWp3LrrxQE69Tw/LgEwYKcnBMGOr8SEKdOih3op2W22vh04lU6+14T6vmTq3JuH26umY35SkG9y/6YDs7piwYZXJIjCrVzJpeFnLLBcfyTQqw6vF6v5S/xT2TjYj7VuxCS2F/UthgBtmCxrvf6uQbalhM5IKDJ0flX7LUHAeGzs1kt3U+FkH4ZHGRyhOygmYcsDSvM1IB1kgETKVRYhqXOgsLwFh9ZXy4L3+oMcB+jLVW7WOgaTGtsWL++kkyObYvayu7vQ7IEO2Mevoc4TVw6KsVaJTyp9XhZ0y8OzNGK5OWk2kub6eNUgTHzY6ODDnmBGKrmeFRXSnrKZBtbpADfB9bA37455CokJfBNGeTXeTMp7jaJV7xbZ2CD6T9zhjS7rf7Wbiy+Ov+5FRPvYHl4/OCR3WgPmgchPvoIW8Chpe8ABDFAHWCBYleYIrJYC4=
+    secure: cYdbJurdCw3p4UI15/XiGULjfPej1cK9VjI6dA3KAM96i68q4hOekens+C4cfVFrq8ne16FkFDMnA7eXLOVZpr0pMJyiBJfuK9B/14sNM1jdpnl4fEiJZmKisQrnKpFddsxe85EWkPGMB7adJhwKKEumYshZg7ecDSglIRh8xTq48r3+s6I5GTYCCjR4/D/TjBJ23K9xqKnZl22FuxTP1R+4FKpSD3UEWaWtFHlDswczI0hLW3H/zqR+ep3SS6fkgK1EL08na0Zso1KanK2cpvLDMj8l1wFE6t7hzx2VZ3bJBOE/RgCYET/xWEr9g6BZsA1IhFmmVKdi6Rpq9CMqyj0vdiidSFWn5oiS//9pN+5As1EN8JEZTq8p1UO9GffqKHztwf2a3HGo61+P4QLfpv7ckoiNrYsl+AQMjP5XbBqvZFdgDz0HsBTdoJCej3pP8Bw5SIvhhc7GaH7dXqhGV8AaTSasYdwukySay6Rw0a6tZJBV74rfzU2AMupa0dEqiLQ63eA0OOfL7I4lUFjyBYestN+HkvIzwcCENApDMzOoccFoV22V5N6awA8BX8oVlGL+49xNGx8OScC3GCqc5SQyzVvCLZUBMOpslbA3SE5pbarX76oOEhr9hqTGgOn1F1XAIHcQaKgHMjKEd0G/VLljs5qZgFJEvXaAXyTGMGc=
   on:
     tags: true
     repo: RouteInjector/ri-backoffice
-
 notifications:
   email:
     on_success: change
@@ -24,6 +19,6 @@ notifications:
   slack:
     secure: md0LdTHXFkbgRytuYn389fR/NI+sbnvQHJj3CKWAlhtwpw2jD2YdxUFJQv/la3fxDOVyfbkmhltd1lsyakqO6ak/JC42NkLAzbno3f35FVAcpthroLOd4RAFzcN3vSWZwdzBcAayUOElEkvc4nafu5MkTJ5PaS3drazeV7CRuF/OBECW2UpADYFwOjzvm5zT5FO7Ymb4LCdJ5PdvDyNnCY/6pmS1jAX4YK7mlN6N6+dhuNAgsbKFSElmn11qLwklKge7yFC+KPxu28UZhkr53NBZTtOEf7tt9dm9vr2y2OeMJqckmFw5FlaBdP0PjfgOExyULF+jH6YdbKnruoKXNuDEG/rSutAnhZtpQG9e6OnJC7BtjlvJIo3AXKtrz/MyKR5yguQ5fqHrysYt2Lk7CYwWOJS38EY36UYJHFPduT9NoFhCkGSWKlWRgZdt89GoT2wzhXW2L5/lRpfsPaUayOwUkrc9eu0owhA2Z6wXp4wdlkQDHgoXZ93jY5JsuFyDOobtg2oBDQT/NSjAPNt/SLyY2B5cS0CuGzln5x/W0XJ8law4YUHcCVBqPC3m7SNABQdkMiNmevc5UJITWnfA2+3k3lRvZWG9yUGadiFNB+9bco3aDB4gBu4YyG5yipchJiitd5XjR/aV4hqugmAz6wDAbDkxz5+EttJf6SLfD18=
     template:
-    - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}'
+    - "%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}"
     - 'Change view : %{compare_url}'
     - 'Build details : %{build_url}'
