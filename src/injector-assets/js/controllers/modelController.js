@@ -107,23 +107,34 @@
                 };
 
                 $scope.displayCustomFieldTitle = function (field, schema) {
-                    var sch = models.getFieldFromSchema(field, schema);
-                    if(sch && sch.title) {
-                        return sch.title;
-                    } else {
-                        var i = field.indexOf('.');
-                        if(i==-1) {
-                          return common.prettifyTitle(field);
+                    var i = field.indexOf('.');
+                    if(i==-1) {
+                        var sch = models.getFieldFromSchema(field, schema);
+                        if(sch && sch.title) {
+                            return sch.title;
                         } else {
-                            var f = field.substring(0,i);
-                            var sch = models.getFieldFromSchema(f, schema);
-                            if(sch && sch.title) {
-                                var ff = field.replace(f, sch.title);
-                                return common.prettifyTitle(ff);
-                            } else {
-                                return common.prettifyTitle(field);
-                            }
+                            return common.prettifyTitle(field);
                         }
+                    } else {
+                        var f = field.substring(0,i);
+                        var sch = models.getFieldFromSchema(f, schema);
+                        var part1;
+                        var part2;
+
+                        if(sch && sch.title) {
+                            part1 = sch.title;
+                        } else {
+                            part1 = common.prettifyTitle(field);
+                        }
+
+                        var sch = models.getFieldFromSchema(field, schema);
+                        if(sch && sch.title) {
+                            part2 = sch.title;
+                        } else {
+                            part2 = common.prettifyTitle(field.substring(i+1));
+                        }
+
+                        return part1 + " > " + part2;
                     }
                 }
 
