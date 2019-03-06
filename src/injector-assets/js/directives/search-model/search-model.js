@@ -185,12 +185,14 @@
                             } else if(d.day != undefined && d.month != undefined && d.year != undefined && d.hour != undefined) {
                                 //CASE 2 1/12/2015 HH:MM -> gte 1/12/2015 HH:MM:00 .. lte 1/12/2015 HH:MM:59
                                 //CASE 3 1/12/2015 HH:MM:SS
-                                var sec = 0;
+                                var sec1 = 0;
+                                var sec2 = 59;
                                 if(!isNaN(d.second)) {
-                                    sec = d.second;
+                                    sec1 = d.second;
+                                    sec2 = d.second;
                                 }
-                                result["$gte"] = new Date(d.year,d.month-1,d.day,d.hour,d.minute,sec,0);
-                                result["$lte"] = new Date(d.year,d.month-1,d.day,d.hour,d.minute,sec,999);
+                                result["$gte"] = new Date(d.year,d.month-1,d.day,d.hour,d.minute,sec1,0);
+                                result["$lte"] = new Date(d.year,d.month-1,d.day,d.hour,d.minute,sec2,999);
                             } else {
                                 result = {err: "format invalid"};
                             }
