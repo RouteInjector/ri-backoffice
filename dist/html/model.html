@@ -1,8 +1,4 @@
 <div>
-    <!-- <ol class="breadcrumb">
-        <li><a href="#/">Home</a></li>
-        <li class="active">{{schema}}</li>
-    </ol> -->
     <div ng-include src="'html/inc/breadcrumb.html'"></div>
     <h1 class="page-title">{{common.prettifyTitle(schema)}}
         <small>{{'MODEL.SUBTITLE'|translate}}</small>
@@ -22,7 +18,7 @@
                         <th><input type="checkbox" ng-model="removeAll"/></th>
                         <th ng-repeat="column in config.allDisplayFields">
                             <a ng-click="sortBy(column,!(getSort(column)==1))" href="">
-                                <span ng-bind-html="common.prettifyTitle(column)"></span>
+                                <span ng-bind-html="models.getFieldTitle(column, schemaForm)"></span>
                                 <span ng-if="getSort(column) && getSort(column) == -1" class="order">
                                     <span class="caret" style="margin: 10px 5px;"></span>
                                 </span>

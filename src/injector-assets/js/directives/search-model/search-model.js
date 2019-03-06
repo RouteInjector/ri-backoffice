@@ -11,25 +11,7 @@
                     scope.searches = [];
                     scope.models = models;
                     var modelName = $routeParams.schema;
-
-                    scope.buildPath = function (field, schema) {
-                        var sc = models.getFieldFromSchema(field, schema);
-                        var title;
-                        if (sc && sc.title) {
-                            var i = field.lastIndexOf(".");
-                            if (i > -1 && sc.title.indexOf("<i") == -1) {//TODO: ÑAPA DE LAS GUAPAS, ESTO HAY QUE CAMBIARLO
-                                title = common.prettifyTitle(field.substring(0, i) + '.' + sc.title);
-                            } else {
-                                title = sc.title;
-                            }
-
-                        } else {
-                            title = common.prettifyTitle(field);
-                        }
-
-                        return title;
-                    };
-
+                    
                     scope.updateSearch = function (elemSearch, field, noSearch) {
                         var index;
                         if (elemSearch.field) {
@@ -39,13 +21,16 @@
                             }
                         }
 
-                        var fieldFromSchema = models.getFieldFromSchema(field, scope.schema);
-
-                        elemSearch.title = fieldFromSchema.title;
+                        var fieldFromSchema = models.getFieldFromSchema(field, scope.schema);                        
+                        if(fieldFromSchema) {                            
+                            elemSearch.ref = (fieldFromSchema.ref && !fieldFromSchema.denormalize) ? fieldFromSchema.ref : undefined;
+                        } else {                                                
+                            elemSearch.ref = undefined;
+                        }
+                        elemSearch.title = models.getFieldTitle(field, scope.schema);                        
                         elemSearch.field = field;
                         elemSearch.placeholder = {modelName: modelName, field: elemSearch.field};
-                        elemSearch.ref = (fieldFromSchema.ref && !fieldFromSchema.denormalize) ? fieldFromSchema.ref : undefined;
-
+                        
                         index = scope.availableFields.indexOf(field);
                         if (index > -1) {
                             scope.availableFields.splice(index, 1);
@@ -142,6 +127,7 @@
                         models.getModelConfig(modelName, function (config) {
                             scope.addSearch(config.displayField);
 
+                            /* OLD BEHAVIOUR: filters available with searchable fields...
                             scope.availableFields = scope.availableFields.filter(function(val) {
                                 if(config.searchableFields) {
                                     return !(config.searchableFields.indexOf(val) == -1);
@@ -149,6 +135,10 @@
                                     return true;
                                 }
                             });
+                            */
+                            if(config.searchableFields) {
+                                scope.availableFields = config.searchableFields;
+                            }
                         });
                     });
 
@@ -384,16 +374,18 @@
                                         } else {
                                             singleQuery[s.field] = s.value;
                                         }
-                                    }
-                                }
+                                    } else {
+                                        // The field is listed on searchableFields BUT it is not on the schema.
+                                        // Assume a string and believe on the programmer :)
+                                        singleQuery[s.field] = singleQuery[s.field] = {$regex: s.value, $options: 'i'};                                
+                                    } 
+                                }                              
                                 angular.extend(query, singleQuery);
                             });
                         });
-
                         search.setQuery(query);
                         search.setSkip(0);
                         scope.$parent.search();
-
                     };
                 }
             };

@@ -6,6 +6,7 @@
             var defaultItemsPerPage = 20;
             $scope.flash = flash;
             $scope.common = common;
+            $scope.models = models;
             $scope.removeDisabled = 'disabled';
 
             $scope.maxSize = 10;
@@ -105,38 +106,6 @@
                 $scope.isDisabled = function (element) {
                     return !(element[$scope.config.id] && element[$scope.config.id] !== "");
                 };
-
-                $scope.displayCustomFieldTitle = function (field, schema) {
-                    var i = field.indexOf('.');
-                    if(i==-1) {
-                        var sch = models.getFieldFromSchema(field, schema);
-                        if(sch && sch.title) {
-                            return sch.title;
-                        } else {
-                            return common.prettifyTitle(field);
-                        }
-                    } else {
-                        var f = field.substring(0,i);
-                        var sch = models.getFieldFromSchema(f, schema);
-                        var part1;
-                        var part2;
-
-                        if(sch && sch.title) {
-                            part1 = sch.title;
-                        } else {
-                            part1 = common.prettifyTitle(field);
-                        }
-
-                        var sch = models.getFieldFromSchema(field, schema);
-                        if(sch && sch.title) {
-                            part2 = sch.title;
-                        } else {
-                            part2 = common.prettifyTitle(field.substring(i+1));
-                        }
-
-                        return part1 + " > " + part2;
-                    }
-                }
 
                 $scope.displayCustomField = function (field, element, schema) {
                     var s = common.getField(field, element);

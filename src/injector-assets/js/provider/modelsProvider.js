@@ -508,6 +508,38 @@
                         return ret;
                     }
 
+                    service.getFieldTitle = function (field, schema) {
+                        var i = field.indexOf('.');
+                        if(i==-1) {
+                            var sch = service.getFieldFromSchema(field, schema);
+                            if(sch && sch.title) {
+                                return sch.title;
+                            } else {
+                                return common.prettifyTitle(field);
+                            }
+                        } else {
+                            var f = field.substring(0,i);
+                            var sch = service.getFieldFromSchema(f, schema);
+                            var part1;
+                            var part2;
+        
+                            if(sch && sch.title) {
+                                part1 = sch.title;
+                            } else {
+                                part1 = common.prettifyTitle(field);
+                            }
+        
+                            var sch = service.getFieldFromSchema(field, schema);
+                            if(sch && sch.title) {
+                                part2 = sch.title;
+                            } else {
+                                part2 = common.prettifyTitle(field.substring(i+1));
+                            }
+        
+                            return part1 + " > " + part2;
+                        }
+                    }
+        
                     /**
                      * Obtains point separated field {{field}} from schema {{schema}}
                      * @param field

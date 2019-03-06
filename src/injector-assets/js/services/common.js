@@ -20,7 +20,7 @@
             factory.getAngularVariables = function (url) {
                 return /\{{(.*)\}}/.exec(url)[1];
             };
-
+            
             factory.prettifyTitle = function (title, separator) {
                 title = title || "";
                 separator = separator || ".";

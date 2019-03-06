@@ -976,6 +976,38 @@
                         return ret;
                     }
 
+                    service.getFieldTitle = function (field, schema) {
+                        var i = field.indexOf('.');
+                        if(i==-1) {
+                            var sch = service.getFieldFromSchema(field, schema);
+                            if(sch && sch.title) {
+                                return sch.title;
+                            } else {
+                                return common.prettifyTitle(field);
+                            }
+                        } else {
+                            var f = field.substring(0,i);
+                            var sch = service.getFieldFromSchema(f, schema);
+                            var part1;
+                            var part2;
+        
+                            if(sch && sch.title) {
+                                part1 = sch.title;
+                            } else {
+                                part1 = common.prettifyTitle(field);
+                            }
+        
+                            var sch = service.getFieldFromSchema(field, schema);
+                            if(sch && sch.title) {
+                                part2 = sch.title;
+                            } else {
+                                part2 = common.prettifyTitle(field.substring(i+1));
+                            }
+        
+                            return part1 + " > " + part2;
+                        }
+                    }
+        
                     /**
                      * Obtains point separated field {{field}} from schema {{schema}}
                      * @param field
@@ -1451,7 +1483,7 @@
             factory.getAngularVariables = function (url) {
                 return /\{{(.*)\}}/.exec(url)[1];
             };
-
+            
             factory.prettifyTitle = function (title, separator) {
                 title = title || "";
                 separator = separator || ".";
@@ -2118,25 +2150,7 @@ function orderKeys(obj) {
                     scope.searches = [];
                     scope.models = models;
                     var modelName = $routeParams.schema;
-
-                    scope.buildPath = function (field, schema) {
-                        var sc = models.getFieldFromSchema(field, schema);
-                        var title;
-                        if (sc && sc.title) {
-                            var i = field.lastIndexOf(".");
-                            if (i > -1 && sc.title.indexOf("<i") == -1) {//TODO: ÑAPA DE LAS GUAPAS, ESTO HAY QUE CAMBIARLO
-                                title = common.prettifyTitle(field.substring(0, i) + '.' + sc.title);
-                            } else {
-                                title = sc.title;
-                            }
-
-                        } else {
-                            title = common.prettifyTitle(field);
-                        }
-
-                        return title;
-                    };
-
+                    
                     scope.updateSearch = function (elemSearch, field, noSearch) {
                         var index;
                         if (elemSearch.field) {
@@ -2146,13 +2160,16 @@ function orderKeys(obj) {
                             }
                         }
 
-                        var fieldFromSchema = models.getFieldFromSchema(field, scope.schema);
-
-                        elemSearch.title = fieldFromSchema.title;
+                        var fieldFromSchema = models.getFieldFromSchema(field, scope.schema);                        
+                        if(fieldFromSchema) {                            
+                            elemSearch.ref = (fieldFromSchema.ref && !fieldFromSchema.denormalize) ? fieldFromSchema.ref : undefined;
+                        } else {                                                
+                            elemSearch.ref = undefined;
+                        }
+                        elemSearch.title = models.getFieldTitle(field, scope.schema);                        
                         elemSearch.field = field;
                         elemSearch.placeholder = {modelName: modelName, field: elemSearch.field};
-                        elemSearch.ref = (fieldFromSchema.ref && !fieldFromSchema.denormalize) ? fieldFromSchema.ref : undefined;
-
+                        
                         index = scope.availableFields.indexOf(field);
                         if (index > -1) {
                             scope.availableFields.splice(index, 1);
@@ -2249,6 +2266,7 @@ function orderKeys(obj) {
                         models.getModelConfig(modelName, function (config) {
                             scope.addSearch(config.displayField);
 
+                            /* OLD BEHAVIOUR: filters available with searchable fields...
                             scope.availableFields = scope.availableFields.filter(function(val) {
                                 if(config.searchableFields) {
                                     return !(config.searchableFields.indexOf(val) == -1);
@@ -2256,6 +2274,10 @@ function orderKeys(obj) {
                                     return true;
                                 }
                             });
+                            */
+                            if(config.searchableFields) {
+                                scope.availableFields = config.searchableFields;
+                            }
                         });
                     });
 
@@ -2292,12 +2314,14 @@ function orderKeys(obj) {
                             } else if(d.day != undefined && d.month != undefined && d.year != undefined && d.hour != undefined) {
                                 //CASE 2 1/12/2015 HH:MM -> gte 1/12/2015 HH:MM:00 .. lte 1/12/2015 HH:MM:59
                                 //CASE 3 1/12/2015 HH:MM:SS
-                                var sec = 0;
+                                var sec1 = 0;
+                                var sec2 = 59;
                                 if(!isNaN(d.second)) {
-                                    sec = d.second;
+                                    sec1 = d.second;
+                                    sec2 = d.second;
                                 }
-                                result["$gte"] = new Date(d.year,d.month-1,d.day,d.hour,d.minute,sec,0);
-                                result["$lte"] = new Date(d.year,d.month-1,d.day,d.hour,d.minute,sec,999);
+                                result["$gte"] = new Date(d.year,d.month-1,d.day,d.hour,d.minute,sec1,0);
+                                result["$lte"] = new Date(d.year,d.month-1,d.day,d.hour,d.minute,sec2,999);
                             } else {
                                 result = {err: "format invalid"};
                             }
@@ -2489,16 +2513,18 @@ function orderKeys(obj) {
                                         } else {
                                             singleQuery[s.field] = s.value;
                                         }
-                                    }
-                                }
+                                    } else {
+                                        // The field is listed on searchableFields BUT it is not on the schema.
+                                        // Assume a string and believe on the programmer :)
+                                        singleQuery[s.field] = singleQuery[s.field] = {$regex: s.value, $options: 'i'};                                
+                                    } 
+                                }                              
                                 angular.extend(query, singleQuery);
                             });
                         });
-
                         search.setQuery(query);
                         search.setSkip(0);
                         scope.$parent.search();
-
                     };
                 }
             };
@@ -3059,6 +3085,7 @@ function orderKeys(obj) {
             var defaultItemsPerPage = 20;
             $scope.flash = flash;
             $scope.common = common;
+            $scope.models = models;
             $scope.removeDisabled = 'disabled';
 
             $scope.maxSize = 10;
