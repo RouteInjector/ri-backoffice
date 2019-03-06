@@ -22,7 +22,7 @@
                         <th><input type="checkbox" ng-model="removeAll"/></th>
                         <th ng-repeat="column in config.allDisplayFields">
                             <a ng-click="sortBy(column,!(getSort(column)==1))" href="">
-                                <span ng-bind-html="common.prettifyTitle(column)"></span>
+                                <span ng-bind-html="displayCustomFieldTitle(column, schemaForm)"></span>
                                 <span ng-if="getSort(column) && getSort(column) == -1" class="order">
                                     <span class="caret" style="margin: 10px 5px;"></span>
                                 </span>

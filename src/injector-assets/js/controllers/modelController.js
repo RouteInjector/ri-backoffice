@@ -106,6 +106,27 @@
                     return !(element[$scope.config.id] && element[$scope.config.id] !== "");
                 };
 
+                $scope.displayCustomFieldTitle = function (field, schema) {
+                    var sch = models.getFieldFromSchema(field, schema);
+                    if(sch && sch.title) {
+                        return sch.title;
+                    } else {
+                        var i = field.indexOf('.');
+                        if(i==-1) {
+                          return common.prettifyTitle(field);
+                        } else {
+                            var f = field.substring(0,i);
+                            var sch = models.getFieldFromSchema(f, schema);
+                            if(sch && sch.title) {
+                                var ff = field.replace(f, sch.title);
+                                return common.prettifyTitle(ff);
+                            } else {
+                                return common.prettifyTitle(field);
+                            }
+                        }
+                    }
+                }
+
                 $scope.displayCustomField = function (field, element, schema) {
                     var s = common.getField(field, element);
                     var sch = models.getFieldFromSchema(field, schema);
