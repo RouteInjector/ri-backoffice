@@ -3196,6 +3196,13 @@ function orderKeys(obj) {
                             s = m.local().format("L HH:mm:ss.SSS");
                         }
                     }
+                    if(sch && sch.type == "boolean") {
+                        if(s) {
+                            s = '<span style="color:green">&#x2714;</span>';
+                        } else {
+                            s = '<span style="color:#d9534f">&#x2718;</span>';
+                        }
+                    }
                     return (s === undefined || s === "") ? "<empty>" : s;
                 };
 
