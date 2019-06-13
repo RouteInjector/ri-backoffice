@@ -14,13 +14,24 @@
                     } else if (action.type && action.type == "location") {
                         $location.path(action.location);
                     } else {
+			
+			if (action.elements) {
+
+			    var data = {action: action.data, elements: scope.elements.filter(function (x) {
+				return x.checked;
+			    })};
+			    
+			} else {
+			    data = action.data;
+			}
+			
                         var req = {
                             method: action.method,
                             url: action.path,
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            data: action.data
+                            data: data
                         };
 
                         $http(req);

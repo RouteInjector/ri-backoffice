@@ -37,13 +37,15 @@
 
     <!-- Single button -->
     <div ng-if="config.extraActions" ng-repeat="(section, actions) in config.extraActions" class="btn-group" dropdown>
-        <a ng-href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
+        <a ng-if="actions.length > 1" ng-href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
            role="button">
             {{section}} <span class="caret"></span>
         </a>
-        <ul class="dropdown-menu" role="menu">
+        <ul ng-if="actions.length > 1" class="dropdown-menu" role="menu">
             <li><a ng-repeat="action in actions"
                    ng-click="performAction(action)">{{action.title}}</a></li>
         </ul>
+
+        <button ng-if="actions.length == 1" ng-click="performAction(actions[0])" class="btn btn-default">{{actions[0].title}}</button>
     </div>
 </div>
