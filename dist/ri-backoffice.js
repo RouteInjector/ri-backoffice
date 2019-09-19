@@ -3216,9 +3216,11 @@ function orderKeys(obj) {
                     }
                     
                     if(sch && sch.format == "url") {
-                        //sch.prefix = "https://www.google.es?q=";
-                        //s='<span><a target="_blank" href="'+sch.prefix+s+'">'+s+'</a></span>';
-                        s='<span><a target="_blank" href="/'+s+'">'+s+'</a></span>';
+                        if(sch.prefix) {
+                            s='<span><a target="_blank" href="'+sch.prefix+s+'">'+s+'</a></span>';
+                        } else {
+                            s='<span><a target="_blank" href="'+s+'">'+s+'</a></span>';
+                        }
                         
                     }
 

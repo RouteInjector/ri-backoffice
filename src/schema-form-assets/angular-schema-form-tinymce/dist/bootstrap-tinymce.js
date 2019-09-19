@@ -413,7 +413,7 @@ angular.module('schemaForm')
             $scope.error = false;
             $scope.$on('$dropletReady', function whenDropletReady() {
                 loginProvider.getUser(function (user) {
-                    $scope.dropletint.allowedExtensions(['png', 'jpg', 'bmp', 'gif', 'csv', 'pdf', 'zip', 'rar', 'xls', 'xlsx', 'xml', 'yml', 'json', 'doc', 'docx']);
+                    $scope.dropletint.allowedExtensions(['png', 'jpg', 'bmp', 'gif', 'csv', 'pdf', 'zip', 'rar', 'xls', 'xlsx', 'xml', 'yml', 'json', 'doc', 'docx', 'svg']);
                     $scope.dropletint.setRequestHeaders({
                         "Authorization": "BEARER " + user.token
                     });
@@ -436,6 +436,7 @@ angular.module('schemaForm')
 
         }]
     );
+
 angular.module('schemaForm').config(
     ['schemaFormProvider', 'schemaFormDecoratorsProvider', 'sfPathProvider',
         function (schemaFormProvider, schemaFormDecoratorsProvider, sfPathProvider) {

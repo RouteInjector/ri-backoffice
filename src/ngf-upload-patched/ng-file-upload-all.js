@@ -596,17 +596,17 @@ ngFileUpload.service('Upload', ['$http', '$q', '$timeout', function ($http, $q, 
         }
       }
 
-      if (config.file != null) {
+      if (config.files != null) {
         var fileFormName = config.fileFormDataName || 'file';
 
-        if (angular.isArray(config.file)) {
+        if (angular.isArray(config.files)) {
           var isFileFormNameString = angular.isString(fileFormName);
-          for (var i = 0; i < config.file.length; i++) {
-            formData.append(isFileFormNameString ? fileFormName : fileFormName[i], config.file[i],
-              (config.fileName && config.fileName[i]) || config.file[i].name);
+          for (var i = 0; i < config.files.length; i++) {
+            formData.append(isFileFormNameString ? fileFormName : fileFormName[i], config.files[i],
+              (config.fileName && config.fileName[i]) || config.files[i].name);
           }
         } else {
-          formData.append(fileFormName, config.file, config.fileName || config.file.name);
+          formData.append(fileFormName, config.files, config.fileName || config.file.name);
         }
       }
       return formData;
