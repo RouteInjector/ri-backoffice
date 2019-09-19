@@ -124,6 +124,16 @@
                             s = '<span style="color:#d9534f">&#x2718;</span>';
                         }
                     }
+                    
+                    if(sch && sch.format == "url") {
+                        if(sch.prefix) {
+                            s='<span><a target="_blank" href="'+sch.prefix+s+'">'+s+'</a></span>';
+                        } else {
+                            s='<span><a target="_blank" href="'+s+'">'+s+'</a></span>';
+                        }
+                        
+                    }
+
                     return (s === undefined || s === "") ? "<empty>" : s;
                 };
 

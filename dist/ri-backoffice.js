@@ -3214,6 +3214,14 @@ function orderKeys(obj) {
                             s = '<span style="color:#d9534f">&#x2718;</span>';
                         }
                     }
+                    
+                    if(sch && sch.format == "url") {
+                        //sch.prefix = "https://www.google.es?q=";
+                        //s='<span><a target="_blank" href="'+sch.prefix+s+'">'+s+'</a></span>';
+                        s='<span><a target="_blank" href="/'+s+'">'+s+'</a></span>';
+                        
+                    }
+
                     return (s === undefined || s === "") ? "<empty>" : s;
                 };
 
