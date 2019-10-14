@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    angular.module('injectorApp').directive('modelButtons', ['$routeParams', '$http', '$q', '$route', 'models', '$location', function ($routeParams, $http, $q, $route, models, $location) {
+    angular.module('injectorApp').directive('modelButtons', ['$routeParams', '$http', '$q', '$route', 'models', '$location', '$rootScope', function ($routeParams, $http, $q, $route, models, $location, $rootScope) {
         return {
             restrict: 'AE',
             scope: false, //Use the parent scope, in this case the modelController (this directive always will be loaded in the model page!)
@@ -14,17 +14,19 @@
                     } else if (action.type && action.type == "location") {
                         $location.path(action.location);
                     } else {
-			
-			if (action.elements) {
 
-			    var data = {action: action.data, elements: scope.elements.filter(function (x) {
-				return x.checked;
-			    })};
-			    
-			} else {
-			    data = action.data;
-			}
-			
+                        if (action.elements) {
+
+                            var data = {
+                                action: action.data, elements: scope.elements.filter(function (x) {
+                                    return x.checked;
+                                })
+                            };
+
+                        } else {
+                            data = action.data;
+                        }
+                        console.log("Faig request!");
                         var req = {
                             method: action.method,
                             url: action.path,
@@ -34,7 +36,14 @@
                             data: data
                         };
 
-                        $http(req);
+                        $http(req).then(function (res) {
+
+                            if (action.reload) {
+
+                                window.location.reload();
+
+                            }
+                        });
                     }
                 };
 
@@ -44,9 +53,9 @@
                     });
 
                     if (checked && checked.length > 0) {
-                        var query = {$or: []};
+                        var query = { $or: [] };
                         angular.forEach(checked, function (elem) {
-                            query.$or.push({_id: elem._id});//We search by id
+                            query.$or.push({ _id: elem._id });//We search by id
                         });
                         return query;
                     } else {
