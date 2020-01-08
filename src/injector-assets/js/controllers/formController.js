@@ -10,9 +10,10 @@
             $scope.buttonsPosition = configs.backoffice.buttonsPosition || 'bottom';
 
             function walkThroughSchema(schema) {
+            
                 var keys = Object.keys(schema);
                 for (var i in keys) {
-                    if(schema[keys[i]]) {
+                    if (schema[keys[i]]) {
                         if (schema[keys[i]].editOnCreate) {
                             var action = $scope.action.toLowerCase();
                             schema[keys[i]].readonly = !(action === "create");
@@ -23,8 +24,15 @@
                         }
 
                         var type = schema[keys[i]].type;
-                        if ((type === 'array' || type === 'object') && schema[keys[i]].properties) {
-                            walkThroughSchema(schema[keys[i]].properties);
+                        if ((type === 'array' || type === 'object')) {
+                            
+                            if (schema[keys[i]].properties) {
+                                walkThroughSchema(schema[keys[i]].properties);
+                            } else {
+                                var obj = type === 'array' ? schema[keys[i]].items : schema[keys[i]];
+                                if (obj.hidden)
+                                    delete schema[keys[i]];    
+                            }
                         }
                     }
                 }
@@ -174,7 +182,7 @@
                         case 'DELETE':
                             http = $http.delete(url);
                             break;
-                        default :
+                        default:
                             throw new Error('Method not configured properly');
                     }
                     if (http) {

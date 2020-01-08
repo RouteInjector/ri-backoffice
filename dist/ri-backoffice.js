@@ -2818,9 +2818,10 @@ function orderKeys(obj) {
             $scope.buttonsPosition = configs.backoffice.buttonsPosition || 'bottom';
 
             function walkThroughSchema(schema) {
+            
                 var keys = Object.keys(schema);
                 for (var i in keys) {
-                    if(schema[keys[i]]) {
+                    if (schema[keys[i]]) {
                         if (schema[keys[i]].editOnCreate) {
                             var action = $scope.action.toLowerCase();
                             schema[keys[i]].readonly = !(action === "create");
@@ -2831,8 +2832,15 @@ function orderKeys(obj) {
                         }
 
                         var type = schema[keys[i]].type;
-                        if ((type === 'array' || type === 'object') && schema[keys[i]].properties) {
-                            walkThroughSchema(schema[keys[i]].properties);
+                        if ((type === 'array' || type === 'object')) {
+                            
+                            if (schema[keys[i]].properties) {
+                                walkThroughSchema(schema[keys[i]].properties);
+                            } else {
+                                var obj = type === 'array' ? schema[keys[i]].items : schema[keys[i]];
+                                if (obj.hidden)
+                                    delete schema[keys[i]];    
+                            }
                         }
                     }
                 }
@@ -2982,7 +2990,7 @@ function orderKeys(obj) {
                         case 'DELETE':
                             http = $http.delete(url);
                             break;
-                        default :
+                        default:
                             throw new Error('Method not configured properly');
                     }
                     if (http) {
@@ -3189,6 +3197,17 @@ function orderKeys(obj) {
                 };
 
                 $scope.getUrl = function (element, schema) {
+                    
+                    if ($scope.config.viewURL) {
+                        
+                        var url = $scope.config.viewURL
+                            .replace("{{id}}", encodeURIComponent(encodeURIComponent($scope.id(element))))
+                            .replace("{{shardKey}}", encodeURIComponent($scope.shard(element)));
+
+                        return url;
+
+                    }
+
                     var model;
                     if(element.__t) {
                         model = element.__t;
@@ -3196,9 +3215,11 @@ function orderKeys(obj) {
                         model = schema;
                     }
                     var url = "#/model/" + model + "/update/" + encodeURIComponent(encodeURIComponent($scope.id(element)));
+                    
                     if ($scope.hasShard(element)) {
                         url += "/" + encodeURIComponent($scope.shard(element));
                     }
+
                     return url;
                 };
 
@@ -3370,12 +3391,17 @@ function orderKeys(obj) {
                     $scope.shardValues = undefined;
                 }
             });
+            
+            $scope.$on("programaticallySetShard", function(ev, value) {
+                $scope.setShard(value, true);
+            });
 
-            $scope.setShard = function(value) {
+            $scope.setShard = function(value, notEmit) {
                 $scope.shardKeyText = 'Using ' + $scope.shardKey + ' ' + value;
                 models.setShard($scope.shardKey, value, modelName);
-
-                $rootScope.$broadcast('shardChangeEvent');
+                
+                if (!notEmit)
+                    $rootScope.$broadcast('shardChangeEvent');
             };
 
             $scope.removeShard = function() {

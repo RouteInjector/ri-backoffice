@@ -43,12 +43,17 @@
                     $scope.shardValues = undefined;
                 }
             });
+            
+            $scope.$on("programaticallySetShard", function(ev, value) {
+                $scope.setShard(value, true);
+            });
 
-            $scope.setShard = function(value) {
+            $scope.setShard = function(value, notEmit) {
                 $scope.shardKeyText = 'Using ' + $scope.shardKey + ' ' + value;
                 models.setShard($scope.shardKey, value, modelName);
-
-                $rootScope.$broadcast('shardChangeEvent');
+                
+                if (!notEmit)
+                    $rootScope.$broadcast('shardChangeEvent');
             };
 
             $scope.removeShard = function() {

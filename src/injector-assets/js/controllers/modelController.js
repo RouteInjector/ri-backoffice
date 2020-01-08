@@ -90,6 +90,17 @@
                 };
 
                 $scope.getUrl = function (element, schema) {
+                    
+                    if ($scope.config.viewURL) {
+                        
+                        var url = $scope.config.viewURL
+                            .replace("{{id}}", encodeURIComponent(encodeURIComponent($scope.id(element))))
+                            .replace("{{shardKey}}", encodeURIComponent($scope.shard(element)));
+
+                        return url;
+
+                    }
+
                     var model;
                     if(element.__t) {
                         model = element.__t;
@@ -97,9 +108,11 @@
                         model = schema;
                     }
                     var url = "#/model/" + model + "/update/" + encodeURIComponent(encodeURIComponent($scope.id(element)));
+                    
                     if ($scope.hasShard(element)) {
                         url += "/" + encodeURIComponent($scope.shard(element));
                     }
+
                     return url;
                 };
 
