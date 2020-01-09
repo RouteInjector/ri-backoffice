@@ -2832,15 +2832,8 @@ function orderKeys(obj) {
                         }
 
                         var type = schema[keys[i]].type;
-                        if ((type === 'array' || type === 'object')) {
-                            
-                            if (schema[keys[i]].properties) {
-                                walkThroughSchema(schema[keys[i]].properties);
-                            } else {
-                                var obj = type === 'array' ? schema[keys[i]].items : schema[keys[i]];
-                                if (obj.hidden)
-                                    delete schema[keys[i]];    
-                            }
+                        if ((type === 'array' || type === 'object') && schema[keys[i]].properties) {
+                            walkThroughSchema(schema[keys[i]].properties);
                         }
                     }
                 }

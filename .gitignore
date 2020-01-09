@@ -11,3 +11,4 @@
 **/npm-debug.log
 
 dist/css/bootstrap/site
+**/package-lock.json
