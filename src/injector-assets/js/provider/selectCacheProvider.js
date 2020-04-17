@@ -25,20 +25,22 @@
 
                 provider.search = function (modelName, b, shard, cb) {
                     var body = JSON.stringify(b);
+                    var mainKey = shard ? modelName + "_" + shard : shard;
+
                     //console.log("[SelectCache] POST FROM SELECT", modelName, b);
 
-                    if (!selectCacheService.cache[modelName]) {
-                        selectCacheService.cache[modelName] = {};
+                    if (!selectCacheService.cache[mainKey]) {
+                        selectCacheService.cache[mainKey] = {};
                     }
 
-                    if (!selectCacheService.cache[modelName].posts) {
-                        selectCacheService.cache[modelName].posts = {};
+                    if (!selectCacheService.cache[mainKey].posts) {
+                        selectCacheService.cache[mainKey].posts = {};
                     }
 
-                    var cached = selectCacheService.cache[modelName].posts[body];
+                    var cached = selectCacheService.cache[mainKey].posts[body];
                     if (!cached) {//A new query
-                        selectCacheService.cache[modelName].posts[body] = {}; //CALLBACKS
-                        selectCacheService.cache[modelName].posts[body].cbks = [cb]; //CALLBACKS
+                        selectCacheService.cache[mainKey].posts[body] = {}; //CALLBACKS
+                        selectCacheService.cache[mainKey].posts[body].cbks = [cb]; //CALLBACKS
 
                         //console.log("[SelectCache] >>>>>>>>>>>>>> HTTP POST", modelName, b);
                         models.search(modelName, b, shard, function (response, count) {
@@ -46,14 +48,14 @@
                             //    count: count,
                             //    response: response
                             //});
-                            selectCacheService.cache[modelName].posts[body].res = {
+                            selectCacheService.cache[mainKey].posts[body].res = {
                                 response: response,
                                 count: count
                             };
-                            angular.forEach(selectCacheService.cache[modelName].posts[body].cbks, function (cbk) {
+                            angular.forEach(selectCacheService.cache[mainKey].posts[body].cbks, function (cbk) {
                                 cbk(response, count);
                             });
-                            selectCacheService.cache[modelName].posts[body].cbks = [];
+                            selectCacheService.cache[mainKey].posts[body].cbks = [];
                         });
 
                     } else if (!cached.res && cached.cbks) {//Not finished query
@@ -74,37 +76,38 @@
 
                 provider.getDocument = function (modelName, id, shard, cb) {
                     //console.log("[SelectCache] GET FROM SELECT", modelName, id);
+                    var mainKey = shard ? modelName + "_" + shard : shard;
 
-                    if (!selectCacheService.cache[modelName]) {
-                        selectCacheService.cache[modelName] = {};
+                    if (!selectCacheService.cache[mainKey]) {
+                        selectCacheService.cache[mainKey] = {};
                     }
 
-                    if (!selectCacheService.cache[modelName].gets) {
-                        selectCacheService.cache[modelName].gets = {};
+                    if (!selectCacheService.cache[mainKey].gets) {
+                        selectCacheService.cache[mainKey].gets = {};
                     }
 
                     if (id) {
-                        if (!selectCacheService.cache[modelName].gets[id]) {
-                            selectCacheService.cache[modelName].gets[id] = {};
+                        if (!selectCacheService.cache[mainKey].gets[id]) {
+                            selectCacheService.cache[mainKey].gets[id] = {};
                         }
 
-                        if (!selectCacheService.cache[modelName].gets[id].cbks) {
-                            selectCacheService.cache[modelName].gets[id].cbks = [];
+                        if (!selectCacheService.cache[mainKey].gets[id].cbks) {
+                            selectCacheService.cache[mainKey].gets[id].cbks = [];
                         }
 
-                        if (selectCacheService.cache[modelName].gets[id].result) {
+                        if (selectCacheService.cache[mainKey].gets[id].result) {
                             //console.log("[SelectCache] CACHED VALUE", modelName, id, selectCacheService.cache[modelName].gets[id].result);
-                            cb(selectCacheService.cache[modelName].gets[id].result);
-                        } else if (selectCacheService.cache[modelName].gets[id].cbks.indexOf(cb) == -1) {
-                            selectCacheService.cache[modelName].gets[id].cbks.push(cb);
+                            cb(selectCacheService.cache[mainKey].gets[id].result);
+                        } else if (selectCacheService.cache[mainKey].gets[id].cbks.indexOf(cb) == -1) {
+                            selectCacheService.cache[mainKey].gets[id].cbks.push(cb);
                             //console.log("[SelectCache] ADDED CB FOR GET", modelName, id);
 
-                            if (selectCacheService.timers[modelName]) {
-                                clearTimeout(selectCacheService.timers[modelName]);
+                            if (selectCacheService.timers[mainKey]) {
+                                clearTimeout(selectCacheService.timers[mainKey]);
                             }
 
                             //TODO: Possible bug, ASYNC MODELNAME && SHARD !!!!!
-                            selectCacheService.timers[modelName] = setTimeout(function(){
+                            selectCacheService.timers[mainKey] = setTimeout(function(){
                                 httpCall(modelName, shard);
                             }, selectCacheService.TIMEOUT_MS);
                         }
@@ -116,18 +119,20 @@
 
                 function httpCall(model, shard) {
                     models.getModelConfig(model, function (cfg) {
+                        var mainKey = shard ? model + "_" + shard : shard;
+
                         var q = {};
                         if (shard && cfg.shard.shardKey) {
                             q[cfg.shard.shardKey] = shard;
                         }
 
-                        var keys = Object.keys(selectCacheService.cache[model].gets);
+                        var keys = Object.keys(selectCacheService.cache[mainKey].gets);
                         if (keys.length == 1) {
                             q[cfg.id] = keys[0];
                         } else {
                             q.$or = [];
                             angular.forEach(keys, function (id) {
-                                if (!selectCacheService.cache[model].gets[id].result) {
+                                if (!selectCacheService.cache[mainKey].gets[id].result) {
                                     var singleQ = {};
                                     singleQ[cfg.id] = id;
                                     q.$or.push(singleQ);
@@ -140,11 +145,11 @@
                             //console.log("[SelectCache] GET SELECT RESULT", model, q, result);
                             angular.forEach(result, function (doc) {
                                 var id = doc[cfg.id];
-                                selectCacheService.cache[model].gets[id].result = doc;
+                                selectCacheService.cache[mainKey].gets[id].result = doc;
                             });
 
-                            angular.forEach(Object.keys(selectCacheService.cache[model].gets), function (idKey) {
-                                var getObj = selectCacheService.cache[model].gets[idKey];
+                            angular.forEach(Object.keys(selectCacheService.cache[mainKey].gets), function (idKey) {
+                                var getObj = selectCacheService.cache[mainKey].gets[idKey];
                                 if (getObj.cbks) {
                                     angular.forEach(getObj.cbks, function (cb) {
                                         cb(getObj.result);

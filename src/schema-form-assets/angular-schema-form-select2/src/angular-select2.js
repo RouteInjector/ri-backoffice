@@ -159,11 +159,37 @@ angular.module('schemaForm').directive('select2Search', ['$http', '$routeParams'
                     elements(scope.$select, (raw.children[0].children.length - 2));
                 }
             });
+
+            models.getModelConfig(modelName, function(cfg) {
+
+                if (cfg.shard && cfg.shard.shardKey) {
+                    
+                    var init = true;
+
+                    scope.$watch('model.' + cfg.shard.shardKey, function(Nv, Ov) {
+                        
+                        if (init) {
+
+                            if (Nv && !shard) 
+                                shard = Nv;
+
+                            init = false;
+                            
+                        } else {
+
+                            if (Nv && Nv != Ov) {
+                                scope.$select.clear(new Event("shard-key-changed"));
+                                shard = Nv;
+                            }
+
+                        }
+                    });
+                }
+            });
         }
     }
 }
-])
-;
+]);
 
 var modalController = function ($scope, $http, $modalInstance, $routeParams, models, configs, modelName, id, dependsOn, common) {
     //Override the functinos for every opened modal (fixes problem with residual variables)
