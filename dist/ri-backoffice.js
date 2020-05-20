@@ -1188,7 +1188,7 @@
                         var mainKey = shard ? model + "_" + shard : shard;
 
                         var q = {};
-                        if (shard && cfg.shard.shardKey) {
+                        if (shard && cfg.shard && cfg.shard.shardKey) {
                             q[cfg.shard.shardKey] = shard;
                         }
 
