@@ -9,7 +9,7 @@
             $scope.models = models;
             $scope.removeDisabled = 'disabled';
 
-            $scope.maxSize = 10;
+            $scope.maxSize = null;//10;
             $scope.schema = $routeParams.schema;
             $scope.create = false;
             $scope.checkedGroupIds = {};
