@@ -31,6 +31,9 @@
                 setSkip: function(skip){
                     query.skip = skip;
                 },
+                getSkip: function(){
+                    return query.skip;
+                },
                 setLimit: function(limit){
                     query.limit = limit;
                 },

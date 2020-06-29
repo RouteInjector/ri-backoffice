@@ -9,7 +9,7 @@
             $scope.models = models;
             $scope.removeDisabled = 'disabled';
 
-            $scope.maxSize = null;//10;
+            $scope.maxSize = 10;
             $scope.schema = $routeParams.schema;
             $scope.create = false;
             $scope.checkedGroupIds = {};
@@ -48,7 +48,7 @@
                         if (elements) {
                             $scope.elements = elements;
                         }
-                        $scope.totalElements = count;
+                        $scope.totalElements = search.getSkip() ? search.getSkip() + count : count;
                     });
                 };
 

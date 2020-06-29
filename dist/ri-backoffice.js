@@ -1728,6 +1728,9 @@
                 setSkip: function(skip){
                     query.skip = skip;
                 },
+                getSkip: function(){
+                    return query.skip;
+                },
                 setLimit: function(limit){
                     query.limit = limit;
                 },
@@ -3114,7 +3117,7 @@ function orderKeys(obj) {
             $scope.models = models;
             $scope.removeDisabled = 'disabled';
 
-            $scope.maxSize = null;//10;
+            $scope.maxSize = 10;
             $scope.schema = $routeParams.schema;
             $scope.create = false;
             $scope.checkedGroupIds = {};
@@ -3153,7 +3156,7 @@ function orderKeys(obj) {
                         if (elements) {
                             $scope.elements = elements;
                         }
-                        $scope.totalElements = count;
+                        $scope.totalElements = search.getSkip() ? search.getSkip() + count : count;
                     });
                 };
 
