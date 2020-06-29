@@ -38,8 +38,8 @@
                     query.limit = limit;
                 },
                 search: function (schema,  callback) {
-                    models.search(schema, query, function (elements, count) {
-                        callback(elements, count, null);
+                    models.search(schema, query, function (elements, count, isSearchCount) {
+                        callback(elements, count, isSearchCount, null);
                     });
                 },
                 searchAndGroup: function(schema, callback) {

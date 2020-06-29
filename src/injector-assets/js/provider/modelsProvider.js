@@ -352,10 +352,10 @@
                             }
                             $http.post(prefix + '/' + path, JSON.stringify(query)).success(function (documents) {
                                 if (documents.status.search_count !== undefined) {
-                                    cb(documents.result, documents.status.search_count);
+                                    cb(documents.result, documents.status.search_count, true);
                                 }
                                 else {
-                                    cb(documents.result, documents.status.count);
+                                    cb(documents.result, documents.status.count, false);
                                 }
                             });
                         });
