@@ -820,10 +820,10 @@
                             }
                             $http.post(prefix + '/' + path, JSON.stringify(query)).success(function (documents) {
                                 if (documents.status.search_count !== undefined) {
-                                    cb(documents.result, documents.status.search_count, true);
+                                    cb(documents.result, documents.status.search_count);
                                 }
                                 else {
-                                    cb(documents.result, documents.status.count, false);
+                                    cb(documents.result, documents.status.count);
                                 }
                             });
                         });
@@ -1735,8 +1735,8 @@
                     query.limit = limit;
                 },
                 search: function (schema,  callback) {
-                    models.search(schema, query, function (elements, count, isSearchCount) {
-                        callback(elements, count, isSearchCount, null);
+                    models.search(schema, query, function (elements, count) {
+                        callback(elements, count, null);
                     });
                 },
                 searchAndGroup: function(schema, callback) {
@@ -3152,11 +3152,11 @@ function orderKeys(obj) {
                         search.setSkip(skip);
                     }
 
-                    search.search($scope.schema, function (elements, count, addSkip, err) {
+                    search.search($scope.schema, function (elements, count, err) {
                         if (elements) {
                             $scope.elements = elements;
                         }
-                        $scope.totalElements = addSkip ? search.getSkip() + count : count;
+                        $scope.totalElements = count;
                     });
                 };
 

@@ -44,11 +44,11 @@
                         search.setSkip(skip);
                     }
 
-                    search.search($scope.schema, function (elements, count, addSkip, err) {
+                    search.search($scope.schema, function (elements, count, err) {
                         if (elements) {
                             $scope.elements = elements;
                         }
-                        $scope.totalElements = addSkip ? search.getSkip() + count : count;
+                        $scope.totalElements = count;
                     });
                 };
 
