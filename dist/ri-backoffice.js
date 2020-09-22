@@ -467,602 +467,696 @@
 }());
 
 (function () {
-    'use strict';
-
-    angular.module('injectorApp')
-        .provider('models', function () {
-                var overrides = {};
-                var service = {};
-
-                this.override = function (_method, _function) {
-                    overrides[_method] = _function;
-                };
-
-                this.getService = function () {
-                    return service;
-                };
-
-
-                this.$get = ['$rootScope', '$http', 'Upload', 'configs', 'common', function ($rootScope, $http, Upload, configs, common) {
-
-                    var modelsConfig = {};
-                    var singlesCache = {};
-                    var shards = {};
-                    var prefix = '';
-
-                    $rootScope.$on('logout', function () {
-                        service.invalidate();
-                    });
-
-                    $rootScope.$on('invalidate', function () {
-                        console.log("invalidate models provider");
-                        service.invalidate();
-                    });
-
-                    service.invalidate = function () {
-                        shards = {};
-                        singlesCache = {};
-                        modelsConfig = {};
-                    };
-
-                    service.getHttp = function () {
-                        return $http;
-                    };
-
-                    service.getUpload = function () {
-                        return Upload;
-                    };
-
-                    service.setShard = function (key, value, model) {
-                        var shard = {};
-                        shard.key = key;
-                        shard.value = value;
-                        shard.model = model;
-                        shards[model] = shard;
-                    };
-
-                    service.getShard = function (model) {
-                        return shards[model];
-                    };
-
-                    service.removeShard = function (model) {
-                        delete shards[model];
-                    };
-
-                    service.getModels = function (cb) {
-                        prefix = configs.app.prefix;
-
-                        //AVOID CACHE (FOR CHANGING MODELS WHEN LOGIN LOGOUT :)
-                        $http.get('/schemas').then(function (schemas) {
-                            var models = schemas.data;
-                            cb(models);
-                        });
-                    };
-
-                    service.getModel = function (modelName, cb) {
-                        if (!modelsConfig[modelName] && cb) {
-                            $http.get('/schema/' + modelName).then(function (schema) {
-                                $http.get('/schema/' + modelName + '/formconfig').then(function (config) {
-                                    modelsConfig[modelName] = {};
-                                    modelsConfig[modelName].schema = schema.data;
-                                    modelsConfig[modelName].config = config.data;
-                                    cb(modelsConfig[modelName]);
-                                });
-                            });
-                        } else if (!modelsConfig[modelName] && !cb) {
-                            var schema = JSON.parse($.ajax({
-                                type: "GET",
-                                url: '/schema/' + modelName,
-                                async: false
-                            }).responseText);
-
-                            var config = JSON.parse($.ajax({
-                                type: "GET",
-                                url: '/schema/' + modelName + '/formconfig',
-                                async: false
-                            }).responseText);
-
-                            modelsConfig[modelName] = {};
-                            modelsConfig[modelName].schema = schema;
-                            modelsConfig[modelName].config = config;
-
-                            return modelsConfig[modelName];
-
-                        } else {
-                            if (cb) {
-                                cb(modelsConfig[modelName]);
-                            } else {
-                                return modelsConfig[modelName];
-                            }
-                        }
-                    };
-
-                    service.getModelElements = function (modelName, skip, limit, cb) {
-                        service.getModel(modelName, function (data) {
-                            var plural = (data.config.plural || data.config.path + 's' || modelName + 's');
-                            var body = {
-                                skip: skip,
-                                limit: limit
-                            };
-                            if (service.getShard(modelName)) {
-                                body[service.getShard(modelName).key] = service.getShard(modelName).value;
-                            }
-                            $http.post(prefix + '/' + plural, body).success(function (elements) {
-                                cb(elements.result, elements.status.count);
-                            });
-                        });
-                    };
-
-                    service.getModelSchema = function (modelName, cb) {
-                        service.getModel(modelName, function (data) {
-                            return cb(data.schema);
-                        });
-                    };
-
-                    service.getModelConfig = function (modelName, cb) {
-                        service.getModel(modelName, function (data) {
-                            return cb(data.config);
-                        });
-                    };
-
-                    service.postDocument = function (modelName, model, cb) {
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            $http.post(prefix + '/' + path, JSON.stringify(model)).then(function (response) {
-                                return cb(response);
-                            });
-                        });
-                    };
-
-                    service.getUrl = function (modelName, cb) {
-                        throw new Error("Not implemented");
-                    };
-
-                    service.getDocument = function (modelName, id, shard, cb) {
-                        if (!cb) {
-                            cb = shard;
-                            shard = undefined;
-                        }
-
-                        if (!modelName) {
-                            return cb();
-                        }
-                        if (!id) {
-                            return cb();
-                        }
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            var qParams = {
-                                params: {
-                                    type: "back"
-                                }
-                            };
-
-                            service.getModelConfig(modelName, function (cfg) {
-                                if (shard && cfg.shard && cfg.shard.shardKey) {
-                                    qParams.params[cfg.shard.shardKey] = shard;
-                                } else if (service.getShard(modelName)) {
-                                    qParams.params[service.getShard(modelName).key] = service.getShard(modelName).value;
-                                }
-
-                                $http.get(prefix + '/' + path + '/' + id, qParams).success(function (document) {
-                                    return cb(document, null);
-                                }).error(function (data) {
-                                    return cb(null, data);
-                                });
-                            });
-
-                        });
-                    };
-
-                    service.putDocument = function (modelName, id, model, cb) {
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            $http.put(prefix + '/' + path + '/' + id, JSON.stringify(model)).then(function (document) {
-                                return cb(document);
-                            });
-                        });
-                    };
-
-                    service.removeDocument = function (modelName, id, shard, cb) {
-                        if (!cb) {
-                            cb = shard;
-                            shard = undefined;
-                        }
-
-
-                        service.getModel(modelName, function (data) {
-                            var cfg = data.config;
-                            var path = (cfg.path || modelName);
-
-                            var opts = {params: {}};
-
-                            if (shard && cfg.shard && cfg.shard.shardKey) {
-                                opts.params[cfg.shard.shardKey] = shard;
-                            } else if (service.getShard(modelName)) {
-                                opts.params[service.getShard(modelName).key] = service.getShard(modelName).value;
-                            }
-                            $http.delete(prefix + '/' + path + '/' + id, opts).then(cb);
-                        });
-                    };
-
-                    service.removeDocumentByMongoId = function (modelName, id, shard, cb) {
-                        if (!cb) {
-                            cb = shard;
-                            shard = undefined;
-                        }
-
-                        service.getModel(modelName, function (data) {
-                            var cfg = data.config;
-                            var path = (data.config.path || modelName);
-
-                            var opts = {
-                                params: {
-                                    type: 'raw'
-                                }
-                            };
-
-                            if (shard && cfg.shard && cfg.shard.shardKey) {
-                                opts.params[cfg.shard.shardKey] = shard;
-                            } else if (service.getShard(modelName)) {
-                                opts.params[service.getShard(modelName).key] = service.getShard(modelName).value;
-                            }
-                            $http.delete(prefix + '/' + path + '/' + id, opts).then(cb);
-                        });
-                    };
-
-                    service.uploadToGallery = function (file, cb) {
-                        var path = service.getGalleryPath();
-                        Upload.upload({
-                            url: path,
-                            file: file,
-                            fileFormDataName: ['file[]']
-                        }).progress(function (evt) {
-                            console.log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
-                        }).success(function (data, status, headers, config) {
-                            cb(data);
-                        });
-                    }
-
-                    service.uploadImage = function (modelName, id, fieldName, index, image, cb) {
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            Upload.upload({
-                                url: prefix + '/' + path + '/' + id + '/' + fieldName, //upload.php script, node.js route, or servlet url
-                                data: {index: index},
-                                file: image,
-                                fileFormDataName: ['image']
-                            }).progress(function (evt) {
-                                console.log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
-                            }).success(function (data, status, headers, config) {
-                                cb(data);
-                            });
-                        });
-                    };
-
-                    service.uploadFile = function (modelName, id, fieldName, index, file, cb) {
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            Upload.upload({
-                                url: prefix + '/' + path + '/' + id + '/' + fieldName, //upload.php script, node.js route, or servlet url
-                                data: {index: index},
-                                file: file,
-                                fileFormDataName: ['file']
-                            }).progress(function (evt) {
-                                console.log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
-                            }).success(function (data, status, headers, config) {
-                                cb(data);
-                            });
-                        });
-                    };
-
-                    service.deleteImage = function (modelName, id, index, image, cb) {
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            $http.delete(prefix + '/' + path + '/' + id + '/image/' + image).then(cb);
-                        });
-                    };
-
-
-                    service.deleteFile = function (modelName, id, index, file, cb) {
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            $http.delete(prefix + '/' + path + '/' + id + '/file/' + file).then(cb);
-                        });
-                    };
-
-                    service.getImageUrl = function (modelName, id, imageName, cb) {
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            var url = prefix + '/' + path + '/image/' + imageName + common.getRandomQuery();
-                            cb(url);
-                        });
-                    };
-
-                    service.getFileUrl = function (modelName, id, fileName, cb) {
-                        service.getModel(modelName, function (data) {
-                            var path = (data.config.path || modelName);
-                            var url = prefix + '/' + path + '/file/' + fileName + common.getRandomQuery();
-                            cb(url);
-                        });
-                    };
-
-                    service.getSingleModel = function (modelName, cb) {
-                        if (singlesCache[modelName]) {
-                            cb(singlesCache[modelName]);
-                        }
-                        else {
-                            service.search(modelName, {skip: 0, limit: 1}, function (elements, count) {
-                                if (count > 0) {
-                                    //We only cach if we found THE single document
-                                    singlesCache[modelName] = elements[0];
-                                    cb(elements[0]);
-                                } else {
-                                    //Do nothing from now
-                                    cb(null);
-                                }
-                            });
-                        }
-                    };
-
-                    service.search = function (modelName, query, shard, cb) {
-                        if (!cb) {
-                            cb = shard;
-                            shard = undefined;
-                        }
-
-                        service.getModelConfig(modelName, function (config) {
-                            var path = (config.plural || modelName);
-                            if (shard && config.shard && config.shard.shardKey) {
-                                query[config.shard.shardKey] = shard;
-                            } else if (service.getShard(modelName)) {
-                                query[service.getShard(modelName).key] = service.getShard(modelName).value;
-                            }
-                            $http.post(prefix + '/' + path, JSON.stringify(query)).success(function (documents) {
-                                if (documents.status.search_count !== undefined) {
-                                    cb(documents.result, documents.status.search_count);
-                                }
-                                else {
-                                    cb(documents.result, documents.status.count);
-                                }
-                            });
-                        });
-                    };
-
-                    service.export = function (modelName, format, searchQuery, cb) {
-                        service.getModelConfig(modelName, function (config) {
-                            var query = {};
-                            var path = (config.plural || modelName);
-                            if (service.getShard(modelName)) {
-                                query[service.getShard(modelName).key] = service.getShard(modelName).value;
-                            }
-
-                            query.format = format;
-                            query.by = config.id;
-                            query.query = searchQuery || {};
-
-                            service.postAsForm(prefix + '/' + path + '/export', query);
-                            cb();
-                        });
-                    };
-
-                    service.import = function (modelName, format, file, query, cb) {
-                        service.getModelConfig(modelName, function (config) {
-                            var path = (config.plural || modelName);
-                            if (service.getShard(modelName)) {
-                                query[service.getShard(modelName).key] = service.getShard(modelName).value;
-                            }
-
-                            query.format = format;
-
-                            service.postAsForm(prefix + '/' + path + '/import', query, "POST", file);
-                            cb();
-                        });
-                    };
-
-                    service.postAsForm = function (path, params, method, file) {
-                        method = method || "post"; // Set method to post by default if not specified.
-
-                        console.log("POST AS FORM", path, params, method, file);
-
-                        // The rest of this code assumes you are not using a library.
-                        // It can be made less wordy if you use one.
-                        var form = document.createElement("form");
-                        form.setAttribute("method", method);
-                        form.setAttribute("action", path + "?token=" + $http.defaults.headers.common.Authorization.replace("BEARER ", ""));
-
-                        // Open result into a new tab/window:
-                        form.setAttribute("target", "_blank");
-
-                        for (var key in params) {
-
-                            if (params.hasOwnProperty(key)) {
-                                var hiddenField = document.createElement("input");
-                                hiddenField.setAttribute("type", "hidden");
-                                hiddenField.setAttribute("name", key);
-                                if (typeof(params[key]) == "object") {
-                                    hiddenField.setAttribute("value", JSON.stringify(params[key]));
-                                } else {
-                                    hiddenField.setAttribute("value", params[key]);
-                                }
-
-                                form.appendChild(hiddenField);
-                            }
-                        }
-
-                        document.body.appendChild(form);
-                        form.submit();
-                        document.body.removeChild(form);
-                    };
-
-                    service.getGraph = function (modelName, graphID, cb) {
-                        service.getModelConfig(modelName, function (config) {
-                            var path = (config.path || modelName);
-                            $http.post(prefix + '/' + path + '/graphs/' + encodeURI(graphID)).success(function (data) {
-                                cb(data);
-                            });
-                        });
-                    };
-
-
-                    service.galleryGetByPath = function (path, cb) {
-                        if (!service.isGalleryEnabled())
-                            return
-                        $http.get(service.getGalleryPath() + path).success(function (data) {
-                            cb(data);
-                        });
-
-                    };
-
-                    service.galleryDelete = function (path, cb) {
-                        if (!service.isGalleryEnabled())
-                            return
-                        $http.delete(path).success(function (data) {
-                            cb(data);
-                        });
-                    };
-
-                    service.galleryDeleteByPath = function (path, cb) {
-                        if (!service.isGalleryEnabled())
-                            return
-                        $http.delete(service.getGalleryPath() + path).success(function (data) {
-                            cb(data);
-                        });
-                    };
-
-                    service.galleryPostByPath = function (path, cb) {
-                        Upload.upload({
-                            url: service.getGalleryPath() + path,
-                            file: "",
-                            fileFormDataName: ['file[]']
-                        }).success(function (data, status, headers, config) {
-                            cb(data);
-                        });
-                    };
-
-                    service.isGalleryEnabled = function () {
-                        return (configs.images && configs.images.gallery && configs.images.gallery.endpoint)
-                    };
-
-                    service.getGalleryPath = function () {
-                        var path = configs.images.gallery.endpoint;
-                        if (path[0] !== "/")
-                            path = "/" + path;
-                        if (path[path.length - 1] !== "/")
-                            path += "/";
-                        return prefix + path
-                    };
-
-                    function fieldIsDenormalized(retElem, element) {
-                        var ret = null;
-
-                        // There is no denormalize field list
-                        if (!retElem || !retElem.denormalize) {
-                            return null;
-                        }
-
-                        // Look for the element as a string and return the position if found
-                        var i = retElem.denormalize.indexOf(element);
-                        if (i > -1) {
-                            return i;
-                        }
-
-                        // Look for the element as an object with target and source, return the position if found
-                        for (i = 0; i < retElem.denormalize.length; i++) {
-                            if (typeof(retElem.denormalize[i]) === 'object' && retElem.denormalize[i].target == element) {
-                                ret = i;
-                            }
-                        }
-                        return ret;
-                    }
-
-                    service.getFieldTitle = function (field, schema) {
-                        var i = field.indexOf('.');
-                        if(i==-1) {
-                            var sch = service.getFieldFromSchema(field, schema);
-                            if(sch && sch.title) {
-                                return sch.title;
-                            } else {
-                                return common.prettifyTitle(field);
-                            }
-                        } else {
-                            var f = field.substring(0,i);
-                            var sch = service.getFieldFromSchema(f, schema);
-                            var part1;
-                            var part2;
-        
-                            if(sch && sch.title) {
-                                part1 = sch.title;
-                            } else {
-                                part1 = common.prettifyTitle(field);
-                            }
-        
-                            var sch = service.getFieldFromSchema(field, schema);
-                            if(sch && sch.title) {
-                                part2 = sch.title;
-                            } else {
-                                part2 = common.prettifyTitle(field.substring(i+1));
-                            }
-        
-                            return part1 + " > " + part2;
-                        }
-                    }
-        
-                    /**
-                     * Obtains point separated field {{field}} from schema {{schema}}
-                     * @param field
-                     * @param schema
-                     * @returns {*}
-                     */
-                    service.getFieldFromSchema = function (field, schema) {
-                        if (schema[field]) {
-                            return schema[field];
-                        } else {
-                            var elements = field.split('.');
-                            var retElem;
-
-                            for (var i in elements) {
-                                var denormalizedFieldPosition = fieldIsDenormalized(retElem, elements[i]);
-
-                                if (retElem && retElem.properties) {
-                                    retElem = retElem.properties[elements[i]];
-                                } else if (retElem && retElem.ref && denormalizedFieldPosition != null) {
-                                    var source;
-                                    var target;
-
-                                    var denormalizedField = retElem.denormalize[denormalizedFieldPosition];
-                                    if (typeof(denormalizedField) === 'string') {
-                                        source = denormalizedField;
-                                        target = denormalizedField;
-                                    } else {
-                                        source = denormalizedField.source;
-                                        target = denormalizedField.target;
-                                    }
-
-                                    var refSchema = service.getModel(retElem.ref);
-                                    retElem = angular.copy(service.getFieldFromSchema(source, refSchema.schema));
-                                    if (retElem && retElem.title) {
-                                        var index = field.lastIndexOf(".");
-                                        retElem.title = common.prettifyTitle(field.substring(0, index) + '.' + retElem.title);
-                                    }
-                                } else {
-                                    retElem = schema[elements[i]];
-                                }
-                            }
-
-                            return retElem;
-                        }
-                    };
-
-                    angular.forEach(Object.keys(overrides), function (key) {
-                        service[key] = overrides[key];
-                    });
-
-                    return service;
-                }];
+  'use strict';
+
+  angular.module('injectorApp').provider('models', function () {
+    var overrides = {};
+    var service = {};
+
+    this.override = function (_method, _function) {
+      overrides[_method] = _function;
+    };
+
+    this.getService = function () {
+      return service;
+    };
+
+    this.$get = ['$rootScope', '$http', '$httpParamSerializer', 'Upload', 'configs', 'common', function (
+      $rootScope,
+      $http,
+      $httpParamSerializer,
+      Upload,
+      configs,
+      common
+    ) {
+      var modelsConfig = {};
+      var singlesCache = {};
+      var shards = {};
+      var prefix = '';
+
+      $rootScope.$on('logout', function () {
+        service.invalidate();
+      });
+
+      $rootScope.$on('invalidate', function () {
+        console.log('invalidate models provider');
+        service.invalidate();
+      });
+
+      service.invalidate = function () {
+        shards = {};
+        singlesCache = {};
+        modelsConfig = {};
+      };
+
+      service.getHttp = function () {
+        return $http;
+      };
+
+      service.getUpload = function () {
+        return Upload;
+      };
+
+      service.setShard = function (key, value, model) {
+        var shard = {};
+        shard.key = key;
+        shard.value = value;
+        shard.model = model;
+        shards[model] = shard;
+      };
+
+      service.getShard = function (model) {
+        return shards[model];
+      };
+
+      service.removeShard = function (model) {
+        delete shards[model];
+      };
+
+      service.getModels = function (cb) {
+        prefix = configs.app.prefix;
+
+        //AVOID CACHE (FOR CHANGING MODELS WHEN LOGIN LOGOUT :)
+        $http.get('/schemas').then(function (schemas) {
+          var models = schemas.data;
+          cb(models);
+        });
+      };
+
+      service.getModel = function (modelName, cb) {
+        if (!modelsConfig[modelName] && cb) {
+          $http.get('/schema/' + modelName).then(function (schema) {
+            $http
+              .get('/schema/' + modelName + '/formconfig')
+              .then(function (config) {
+                modelsConfig[modelName] = {};
+                modelsConfig[modelName].schema = schema.data;
+                modelsConfig[modelName].config = config.data;
+                cb(modelsConfig[modelName]);
+              });
+          });
+        } else if (!modelsConfig[modelName] && !cb) {
+          var schema = JSON.parse(
+            $.ajax({
+              type: 'GET',
+              url: '/schema/' + modelName,
+              async: false,
+            }).responseText
+          );
+
+          var config = JSON.parse(
+            $.ajax({
+              type: 'GET',
+              url: '/schema/' + modelName + '/formconfig',
+              async: false,
+            }).responseText
+          );
+
+          modelsConfig[modelName] = {};
+          modelsConfig[modelName].schema = schema;
+          modelsConfig[modelName].config = config;
+
+          return modelsConfig[modelName];
+        } else {
+          if (cb) {
+            cb(modelsConfig[modelName]);
+          } else {
+            return modelsConfig[modelName];
+          }
+        }
+      };
+
+      service.getModelElements = function (modelName, skip, limit, cb) {
+        service.getModel(modelName, function (data) {
+          var plural =
+            data.config.plural || data.config.path + 's' || modelName + 's';
+          var body = {
+            skip: skip,
+            limit: limit,
+          };
+          if (service.getShard(modelName)) {
+            body[service.getShard(modelName).key] = service.getShard(
+              modelName
+            ).value;
+          }
+          $http.post(prefix + '/' + plural, body).success(function (elements) {
+            cb(elements.result, elements.status.count);
+          });
+        });
+      };
+
+      service.getModelSchema = function (modelName, cb) {
+        service.getModel(modelName, function (data) {
+          return cb(data.schema);
+        });
+      };
+
+      service.getModelConfig = function (modelName, cb) {
+        service.getModel(modelName, function (data) {
+          return cb(data.config);
+        });
+      };
+
+      service.postDocument = function (modelName, model, cb) {
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          $http
+            .post(prefix + '/' + path, JSON.stringify(model))
+            .then(function (response) {
+              return cb(response);
+            });
+        });
+      };
+
+      service.getUrl = function (modelName, cb) {
+        throw new Error('Not implemented');
+      };
+
+      service.getDocument = function (modelName, id, shard, cb) {
+        if (!cb) {
+          cb = shard;
+          shard = undefined;
+        }
+
+        if (!modelName) {
+          return cb();
+        }
+        if (!id) {
+          return cb();
+        }
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          var qParams = {
+            params: {
+              type: 'back',
+            },
+          };
+
+          service.getModelConfig(modelName, function (cfg) {
+            if (shard && cfg.shard && cfg.shard.shardKey) {
+              qParams.params[cfg.shard.shardKey] = shard;
+            } else if (service.getShard(modelName)) {
+              qParams.params[
+                service.getShard(modelName).key
+              ] = service.getShard(modelName).value;
             }
+
+            $http
+              .get(prefix + '/' + path + '/' + id, qParams)
+              .success(function (document) {
+                return cb(document, null);
+              })
+              .error(function (data) {
+                return cb(null, data);
+              });
+          });
+        });
+      };
+
+      service.putDocument = function (modelName, id, model, cb) {
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          $http
+            .put(prefix + '/' + path + '/' + id, JSON.stringify(model))
+            .then(function (document) {
+              return cb(document);
+            });
+        });
+      };
+
+      service.removeDocument = function (modelName, id, shard, cb) {
+        if (!cb) {
+          cb = shard;
+          shard = undefined;
+        }
+
+        service.getModel(modelName, function (data) {
+          var cfg = data.config;
+          var path = cfg.path || modelName;
+
+          var opts = { params: {} };
+
+          if (shard && cfg.shard && cfg.shard.shardKey) {
+            opts.params[cfg.shard.shardKey] = shard;
+          } else if (service.getShard(modelName)) {
+            opts.params[service.getShard(modelName).key] = service.getShard(
+              modelName
+            ).value;
+          }
+          $http.delete(prefix + '/' + path + '/' + id, opts).then(cb);
+        });
+      };
+
+      service.removeDocumentByMongoId = function (modelName, id, shard, cb) {
+        if (!cb) {
+          cb = shard;
+          shard = undefined;
+        }
+
+        service.getModel(modelName, function (data) {
+          var cfg = data.config;
+          var path = data.config.path || modelName;
+
+          var opts = {
+            params: {
+              type: 'raw',
+            },
+          };
+
+          if (shard && cfg.shard && cfg.shard.shardKey) {
+            opts.params[cfg.shard.shardKey] = shard;
+          } else if (service.getShard(modelName)) {
+            opts.params[service.getShard(modelName).key] = service.getShard(
+              modelName
+            ).value;
+          }
+          $http.delete(prefix + '/' + path + '/' + id, opts).then(cb);
+        });
+      };
+
+      service.uploadToGallery = function (file, cb) {
+        var path = service.getGalleryPath();
+        Upload.upload({
+          url: path,
+          file: file,
+          fileFormDataName: ['file[]'],
+        })
+          .progress(function (evt) {
+            console.log(
+              'percent: ' + parseInt((100.0 * evt.loaded) / evt.total)
+            );
+          })
+          .success(function (data, status, headers, config) {
+            cb(data);
+          });
+      };
+
+      service.uploadImage = function (
+        modelName,
+        id,
+        fieldName,
+        index,
+        image,
+        cb
+      ) {
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          Upload.upload({
+            url: prefix + '/' + path + '/' + id + '/' + fieldName, //upload.php script, node.js route, or servlet url
+            data: { index: index },
+            file: image,
+            fileFormDataName: ['image'],
+          })
+            .progress(function (evt) {
+              console.log(
+                'percent: ' + parseInt((100.0 * evt.loaded) / evt.total)
+              );
+            })
+            .success(function (data, status, headers, config) {
+              cb(data);
+            });
+        });
+      };
+
+      service.uploadFile = function (
+        modelName,
+        id,
+        fieldName,
+        index,
+        file,
+        cb
+      ) {
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          Upload.upload({
+            url: prefix + '/' + path + '/' + id + '/' + fieldName, //upload.php script, node.js route, or servlet url
+            data: { index: index },
+            file: file,
+            fileFormDataName: ['file'],
+          })
+            .progress(function (evt) {
+              console.log(
+                'percent: ' + parseInt((100.0 * evt.loaded) / evt.total)
+              );
+            })
+            .success(function (data, status, headers, config) {
+              cb(data);
+            });
+        });
+      };
+
+      service.deleteImage = function (modelName, id, index, image, cb) {
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          $http
+            .delete(prefix + '/' + path + '/' + id + '/image/' + image)
+            .then(cb);
+        });
+      };
+
+      service.deleteFile = function (modelName, id, index, file, cb) {
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          $http
+            .delete(prefix + '/' + path + '/' + id + '/file/' + file)
+            .then(cb);
+        });
+      };
+
+      service.getImageUrl = function (modelName, id, imageName, cb) {
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          var url =
+            prefix +
+            '/' +
+            path +
+            '/image/' +
+            imageName +
+            common.getRandomQuery();
+          cb(url);
+        });
+      };
+
+      service.getFileUrl = function (modelName, id, fileName, cb) {
+        service.getModel(modelName, function (data) {
+          var path = data.config.path || modelName;
+          var url =
+            prefix + '/' + path + '/file/' + fileName + common.getRandomQuery();
+          cb(url);
+        });
+      };
+
+      service.getSingleModel = function (modelName, cb) {
+        if (singlesCache[modelName]) {
+          cb(singlesCache[modelName]);
+        } else {
+          service.search(modelName, { skip: 0, limit: 1 }, function (
+            elements,
+            count
+          ) {
+            if (count > 0) {
+              //We only cach if we found THE single document
+              singlesCache[modelName] = elements[0];
+              cb(elements[0]);
+            } else {
+              //Do nothing from now
+              cb(null);
+            }
+          });
+        }
+      };
+
+      service.search = function (modelName, query, shard, cb) {
+        if (!cb) {
+          cb = shard;
+          shard = undefined;
+        }
+
+        service.getModelConfig(modelName, function (config) {
+          var path = config.plural || modelName;
+          if (shard && config.shard && config.shard.shardKey) {
+            query[config.shard.shardKey] = shard;
+          } else if (service.getShard(modelName)) {
+            query[service.getShard(modelName).key] = service.getShard(
+              modelName
+            ).value;
+          }
+          $http
+            .post(prefix + '/' + path, JSON.stringify(query))
+            .success(function (documents) {
+              if (documents.status.search_count !== undefined) {
+                cb(documents.result, documents.status.search_count);
+              } else {
+                cb(documents.result, documents.status.count);
+              }
+            });
+        });
+      };
+
+      service.export = function (modelName, format, searchQuery, cb) {
+        service.getModelConfig(modelName, function (config) {
+          var query = {};
+          var path = config.plural || modelName;
+          if (service.getShard(modelName)) {
+            query[service.getShard(modelName).key] = service.getShard(
+              modelName
+            ).value;
+          }
+
+          query.format = format;
+          query.by = config.id;
+          query.query = searchQuery || {};
+
+          service.postAsForm(prefix + '/' + path + '/export', query);
+          cb();
+        });
+      };
+
+      service.import = function (modelName, format, file, query, cb) {
+        service.getModelConfig(modelName, function (config) {
+          var path = config.plural || modelName;
+          if (service.getShard(modelName)) {
+            query[service.getShard(modelName).key] = service.getShard(
+              modelName
+            ).value;
+          }
+
+          query.format = format;
+
+          service.postAsForm(
+            prefix + '/' + path + '/import',
+            query,
+            'POST',
+            file
+          );
+          cb();
+        });
+      };
+
+      service.postAsForm = function (path, params, method, file) {
+        method = method || 'post'; // Set method to post by default if not specified.
+
+        console.log('POST AS FORM', path, params, method, file);
+
+        var info = common.parsePathParams(path);
+        info.vars.token = $http.defaults.headers.common.Authorization.replace(
+          'BEARER ',
+          ''
         );
-}());
+
+        // The rest of this code assumes you are not using a library.
+        // It can be made less wordy if you use one.
+        var form = document.createElement('form');
+        form.setAttribute('method', method);
+        form.setAttribute(
+          'action',
+          info.path + '?' + $httpParamSerializer(info.vars)
+        );
+
+        // Open result into a new tab/window:
+        form.setAttribute('target', '_blank');
+
+        for (var key in params) {
+          if (params.hasOwnProperty(key)) {
+            var hiddenField = document.createElement('input');
+            hiddenField.setAttribute('type', 'hidden');
+            hiddenField.setAttribute('name', key);
+            if (typeof params[key] == 'object') {
+              hiddenField.setAttribute('value', JSON.stringify(params[key]));
+            } else {
+              hiddenField.setAttribute('value', params[key]);
+            }
+
+            form.appendChild(hiddenField);
+          }
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+      };
+
+      service.getGraph = function (modelName, graphID, cb) {
+        service.getModelConfig(modelName, function (config) {
+          var path = config.path || modelName;
+          $http
+            .post(prefix + '/' + path + '/graphs/' + encodeURI(graphID))
+            .success(function (data) {
+              cb(data);
+            });
+        });
+      };
+
+      service.galleryGetByPath = function (path, cb) {
+        if (!service.isGalleryEnabled()) return;
+        $http.get(service.getGalleryPath() + path).success(function (data) {
+          cb(data);
+        });
+      };
+
+      service.galleryDelete = function (path, cb) {
+        if (!service.isGalleryEnabled()) return;
+        $http.delete(path).success(function (data) {
+          cb(data);
+        });
+      };
+
+      service.galleryDeleteByPath = function (path, cb) {
+        if (!service.isGalleryEnabled()) return;
+        $http.delete(service.getGalleryPath() + path).success(function (data) {
+          cb(data);
+        });
+      };
+
+      service.galleryPostByPath = function (path, cb) {
+        Upload.upload({
+          url: service.getGalleryPath() + path,
+          file: '',
+          fileFormDataName: ['file[]'],
+        }).success(function (data, status, headers, config) {
+          cb(data);
+        });
+      };
+
+      service.isGalleryEnabled = function () {
+        return (
+          configs.images &&
+          configs.images.gallery &&
+          configs.images.gallery.endpoint
+        );
+      };
+
+      service.getGalleryPath = function () {
+        var path = configs.images.gallery.endpoint;
+        if (path[0] !== '/') path = '/' + path;
+        if (path[path.length - 1] !== '/') path += '/';
+        return prefix + path;
+      };
+
+      function fieldIsDenormalized(retElem, element) {
+        var ret = null;
+
+        // There is no denormalize field list
+        if (!retElem || !retElem.denormalize) {
+          return null;
+        }
+
+        // Look for the element as a string and return the position if found
+        var i = retElem.denormalize.indexOf(element);
+        if (i > -1) {
+          return i;
+        }
+
+        // Look for the element as an object with target and source, return the position if found
+        for (i = 0; i < retElem.denormalize.length; i++) {
+          if (
+            typeof retElem.denormalize[i] === 'object' &&
+            retElem.denormalize[i].target == element
+          ) {
+            ret = i;
+          }
+        }
+        return ret;
+      }
+
+      service.getFieldTitle = function (field, schema) {
+        var i = field.indexOf('.');
+        if (i == -1) {
+          var sch = service.getFieldFromSchema(field, schema);
+          if (sch && sch.title) {
+            return sch.title;
+          } else {
+            return common.prettifyTitle(field);
+          }
+        } else {
+          var f = field.substring(0, i);
+          var sch = service.getFieldFromSchema(f, schema);
+          var part1;
+          var part2;
+
+          if (sch && sch.title) {
+            part1 = sch.title;
+          } else {
+            part1 = common.prettifyTitle(field);
+          }
+
+          var sch = service.getFieldFromSchema(field, schema);
+          if (sch && sch.title) {
+            part2 = sch.title;
+          } else {
+            part2 = common.prettifyTitle(field.substring(i + 1));
+          }
+
+          return part1 + ' > ' + part2;
+        }
+      };
+
+      /**
+       * Obtains point separated field {{field}} from schema {{schema}}
+       * @param field
+       * @param schema
+       * @returns {*}
+       */
+      service.getFieldFromSchema = function (field, schema) {
+        if (schema[field]) {
+          return schema[field];
+        } else {
+          var elements = field.split('.');
+          var retElem;
+
+          for (var i in elements) {
+            var denormalizedFieldPosition = fieldIsDenormalized(
+              retElem,
+              elements[i]
+            );
+
+            if (retElem && retElem.properties) {
+              retElem = retElem.properties[elements[i]];
+            } else if (
+              retElem &&
+              retElem.ref &&
+              denormalizedFieldPosition != null
+            ) {
+              var source;
+              var target;
+
+              var denormalizedField =
+                retElem.denormalize[denormalizedFieldPosition];
+              if (typeof denormalizedField === 'string') {
+                source = denormalizedField;
+                target = denormalizedField;
+              } else {
+                source = denormalizedField.source;
+                target = denormalizedField.target;
+              }
+
+              var refSchema = service.getModel(retElem.ref);
+              retElem = angular.copy(
+                service.getFieldFromSchema(source, refSchema.schema)
+              );
+              if (retElem && retElem.title) {
+                var index = field.lastIndexOf('.');
+                retElem.title = common.prettifyTitle(
+                  field.substring(0, index) + '.' + retElem.title
+                );
+              }
+            } else {
+              retElem = schema[elements[i]];
+            }
+          }
+
+          return retElem;
+        }
+      };
+
+      angular.forEach(Object.keys(overrides), function (key) {
+        service[key] = overrides[key];
+      });
+
+      return service;
+    }];
+  });
+})();
 
 (function () {
     'use strict';
@@ -1467,234 +1561,258 @@
     }]);
 }());
 (function () {
-    'use strict';
-    angular.module('injectorApp')
-        .factory('common', ['$rootScope', function ($rootScope) {
+  'use strict';
+  angular.module('injectorApp').factory('common', ['$rootScope', function ($rootScope) {
+    var factory = {};
 
-            var factory = {};
+    factory.hasAngularVariable = function (url) {
+      return /\{{(.*)\}}/.test(url);
+    };
 
-            factory.hasAngularVariable = function (url) {
-                return (/\{{(.*)\}}/).test(url);
-            };
+    factory.deAngularizeUrl = function (doc, url) {
+      return url.replace(/\{{(.*)\}}/g, function (ng, matched) {
+        var f = factory.getField(matched, doc);
+        return f;
+      });
+    };
 
-            factory.deAngularizeUrl = function (doc, url) {
-                return url.replace(/\{{(.*)\}}/g, function (ng, matched) {
+    factory.getAngularVariables = function (url) {
+      return /\{{(.*)\}}/.exec(url)[1];
+    };
 
-                    var f = factory.getField(matched, doc);
-                    return f;
-                });
-            };
+    factory.prettifyTitle = function (title, separator) {
+      title = title || '';
+      separator = separator || '.';
+      return (
+        title
+          // look for "."  user.age will be User -> Age
+          //TODO: Look for separator instead of "."
+          .replace(/(\.([a-z]|[A-Z]))/g, function (str) {
+            return (
+              " <i class='fa fa-angle-right'></i> " +
+              str.replace('.', '').toUpperCase()
+            );
+          })
+          // insert a space before all caps
+          .replace(/([A-Z])/g, ' $1')
+          // uppercase the first character
+          .replace(/^./, function (str) {
+            return str.toUpperCase();
+          })
+      );
+    };
 
-            factory.getAngularVariables = function (url) {
-                return /\{{(.*)\}}/.exec(url)[1];
-            };
-            
-            factory.prettifyTitle = function (title, separator) {
-                title = title || "";
-                separator = separator || ".";
-                return title
-                    // look for "."  user.age will be User -> Age
-                    //TODO: Look for separator instead of "."
-                    .replace(/(\.([a-z]|[A-Z]))/g, function (str) {
-                        return " <i class='fa fa-angle-right'></i> " + str.replace(".", "").toUpperCase();
-                    })
-                    // insert a space before all caps
-                    .replace(/([A-Z])/g, ' $1')
-                    // uppercase the first character
-                    .replace(/^./, function (str) {
-                        return str.toUpperCase();
-                    });
-            };
+    /**
+     * Gets field value in point separated {{field}} from the model {{element}}. Also accepts [] notation.
+     * @param field
+     * @param element
+     * @returns {*}
+     */
+    factory.getField = function (field, element) {
+      if (element) {
+        var splitted = field.split('.');
+        if (splitted instanceof Array && splitted.length > 0) {
+          var ret = element;
+          var returnArray;
+          var parentArr;
+          for (var path in splitted) {
+            //Method for extract array[].a fields or array[0].a fields.
+            if (/(\[\d*\])/.test(splitted[path])) {
+              //Is an array !!!
+              var rootElem = splitted[path].replace(/(\[\d*\])/, '');
+              var index = splitted[path].match(/(\d*)(?=\])/)[0];
 
-            /**
-             * Gets field value in point separated {{field}} from the model {{element}}. Also accepts [] notation.
-             * @param field
-             * @param element
-             * @returns {*}
-             */
-            factory.getField = function (field, element) {
-                if (element) {
-                    var splitted = field.split('.');
-                    if (splitted instanceof Array && splitted.length > 0) {
-                        var ret = element;
-                        var returnArray;
-                        var parentArr;
-                        for (var path in splitted) {
-
-                            //Method for extract array[].a fields or array[0].a fields.
-                            if ((/(\[\d*\])/).test(splitted[path])) {
-                                //Is an array !!!
-                                var rootElem = splitted[path].replace(/(\[\d*\])/, "");
-                                var index = splitted[path].match(/(\d*)(?=\])/)[0];
-
-                                if (ret) {
-                                    if (index) {
-                                        ret = ret[rootElem][index];
-                                    }
-                                    else {
-                                        parentArr = rootElem;
-                                    }
-                                }
-                            } else {
-                                if (parentArr) {
-                                    var tmp = ret;
-                                    returnArray = [];
-                                    for (var elem in tmp[parentArr]) {
-                                        returnArray.push(tmp[parentArr][elem][splitted[path]]);
-                                    }
-                                } else {
-                                    if (ret) {
-                                        ret = ret[splitted[path]];
-                                    }
-                                }
-                            }
-                        }
-                        if (returnArray) {
-                            return returnArray;
-                        }
-                        return ret;
-                    } else {
-                        return element[field];
-                    }
+              if (ret) {
+                if (index) {
+                  ret = ret[rootElem][index];
+                } else {
+                  parentArr = rootElem;
                 }
-            };
-
-            /**
-             * Sets value {{value}} to model {{model}} in the point separated field {{field}}
-             * @param field
-             * @param model
-             * @param value
-             */
-            factory.setField = function (field, model, value) {
-                if (model) {
-                    var splitted = field.split('.');
-                    if (splitted instanceof Array && splitted.length > 0) {
-                        var ref = model;
-                        for (var i = 0; i < splitted.length; i++) {
-                            var path = splitted[i];
-                            if ((/(\[\d*\])/).test(path)) {
-                                var rootElem = path.replace(/(\[\d*\])/, "");
-                                var index = path.match(/(\d*)(?=\])/)[0];
-
-                                var newPath;
-                                if (index === undefined) {
-                                    for (var arrInd in ref[rootElem]) {
-                                        newPath = splitted[i + 1];
-                                        factory.setField(newPath, ref[rootElem][arrInd], value);
-                                    }
-                                } else {
-                                    newPath = splitted[i + 1];
-                                    factory.setField(newPath, ref[rootElem][index], value);
-                                }
-                            } else {
-                                if (i < splitted.length - 1) {
-                                    if (!ref[path]) {
-                                        ref[path] = {};
-                                    }
-                                    ref = ref[path];
-                                } else {
-                                    ref[path] = value;
-                                }
-                            }
-                        }
-                    }
+              }
+            } else {
+              if (parentArr) {
+                var tmp = ret;
+                returnArray = [];
+                for (var elem in tmp[parentArr]) {
+                  returnArray.push(tmp[parentArr][elem][splitted[path]]);
                 }
-            };
-
-            /**
-             * Obtains all the keys of an schema (using {{separator}} as nested level indicator)
-             * @param schema
-             * @param separator
-             * @returns {Array}
-             */
-            factory.getAllSchemaFields = function (schema, separator) {
-                separator = separator || ".";
-                var fields = [];
-
-                function searchFields(obj, parent) {
-                    var keys = Object.keys(obj);
-                    angular.forEach(keys, function (k) {
-                        if (obj[k].properties) {
-                            searchFields(obj[k].properties, parent ? (parent + separator + k) : k);
-                        } else if (obj[k].denormalize) {
-                            if(Array.isArray(obj[k].denormalize)) {
-                                angular.forEach(obj[k].denormalize, function(field) {
-                                    if(typeof(field) !== 'object') {
-                                        fields.push((parent ? (parent + separator) : "") + k + separator + field);
-                                    } else {
-                                        fields.push(
-                                            (parent ? (parent + separator) : "") + k + separator + field.target
-                                        );
-                                    }
-                                });
-                            } else {
-                                fields.push((parent ? (parent + separator) : "") + k);
-                            }
-                        } else {
-                            fields.push(parent ? (parent + separator + k) : k);
-                        }
-                    });
+              } else {
+                if (ret) {
+                  ret = ret[splitted[path]];
                 }
+              }
+            }
+          }
+          if (returnArray) {
+            return returnArray;
+          }
+          return ret;
+        } else {
+          return element[field];
+        }
+      }
+    };
 
-                searchFields(schema);
+    /**
+     * Sets value {{value}} to model {{model}} in the point separated field {{field}}
+     * @param field
+     * @param model
+     * @param value
+     */
+    factory.setField = function (field, model, value) {
+      if (model) {
+        var splitted = field.split('.');
+        if (splitted instanceof Array && splitted.length > 0) {
+          var ref = model;
+          for (var i = 0; i < splitted.length; i++) {
+            var path = splitted[i];
+            if (/(\[\d*\])/.test(path)) {
+              var rootElem = path.replace(/(\[\d*\])/, '');
+              var index = path.match(/(\d*)(?=\])/)[0];
 
-                return fields;
-            };
-
-            /**
-             * Process the form and returns the schema form for the schemaForm module
-             * @param form
-             * @param submitButtons
-             * @returns {*|string[]}
-             */
-            factory.processForm = function (form, submitButtons) {
-                var showSubmitButtons = (submitButtons === undefined || submitButtons);
-                var innerForm;
-
-                if (form && form.tabs) {
-                    innerForm = innerForm || [];
-                    innerForm.push({
-                        "type": "tabs",
-                        "tabs": form.tabs
-                    });
-                } else if (form && form.items) {
-                    innerForm = form.items;
+              var newPath;
+              if (index === undefined) {
+                for (var arrInd in ref[rootElem]) {
+                  newPath = splitted[i + 1];
+                  factory.setField(newPath, ref[rootElem][arrInd], value);
                 }
+              } else {
+                newPath = splitted[i + 1];
+                factory.setField(newPath, ref[rootElem][index], value);
+              }
+            } else {
+              if (i < splitted.length - 1) {
+                if (!ref[path]) {
+                  ref[path] = {};
+                }
+                ref = ref[path];
+              } else {
+                ref[path] = value;
+              }
+            }
+          }
+        }
+      }
+    };
 
-                innerForm = innerForm || ["*"];
+    /**
+     * Obtains all the keys of an schema (using {{separator}} as nested level indicator)
+     * @param schema
+     * @param separator
+     * @returns {Array}
+     */
+    factory.getAllSchemaFields = function (schema, separator) {
+      separator = separator || '.';
+      var fields = [];
 
-                //TODO: Keep this comment out to wait if someone complains of missing feature
-                //if (showSubmitButtons) {
-                //    var hasSubmitButton = false;
-                //    angular.forEach(innerForm, function (item) {
-                //        if (item.type == "submit") {
-                //            hasSubmitButton = true;
-                //        }
-                //    });
-                //
-                //    if (!hasSubmitButton) {
-                //        innerForm.push({
-                //            type: "submit",
-                //            title: "Save"
-                //        });
-                //    }
-                //
-                //}
+      function searchFields(obj, parent) {
+        var keys = Object.keys(obj);
+        angular.forEach(keys, function (k) {
+          if (obj[k].properties) {
+            searchFields(
+              obj[k].properties,
+              parent ? parent + separator + k : k
+            );
+          } else if (obj[k].denormalize) {
+            if (Array.isArray(obj[k].denormalize)) {
+              angular.forEach(obj[k].denormalize, function (field) {
+                if (typeof field !== 'object') {
+                  fields.push(
+                    (parent ? parent + separator : '') + k + separator + field
+                  );
+                } else {
+                  fields.push(
+                    (parent ? parent + separator : '') +
+                      k +
+                      separator +
+                      field.target
+                  );
+                }
+              });
+            } else {
+              fields.push((parent ? parent + separator : '') + k);
+            }
+          } else {
+            fields.push(parent ? parent + separator + k : k);
+          }
+        });
+      }
 
-                return innerForm;
-            };
+      searchFields(schema);
 
-            factory.randomNumber = function () {
-                return (new Date()).getTime();
-            };
+      return fields;
+    };
 
-            factory.getRandomQuery = function () {
-                return '?r=' + factory.randomNumber();
-            };
+    /**
+     * Process the form and returns the schema form for the schemaForm module
+     * @param form
+     * @param submitButtons
+     * @returns {*|string[]}
+     */
+    factory.processForm = function (form, submitButtons) {
+      var showSubmitButtons = submitButtons === undefined || submitButtons;
+      var innerForm;
 
-            return factory;
-        }]);
-}());
+      if (form && form.tabs) {
+        innerForm = innerForm || [];
+        innerForm.push({
+          type: 'tabs',
+          tabs: form.tabs,
+        });
+      } else if (form && form.items) {
+        innerForm = form.items;
+      }
+
+      innerForm = innerForm || ['*'];
+
+      //TODO: Keep this comment out to wait if someone complains of missing feature
+      //if (showSubmitButtons) {
+      //    var hasSubmitButton = false;
+      //    angular.forEach(innerForm, function (item) {
+      //        if (item.type == "submit") {
+      //            hasSubmitButton = true;
+      //        }
+      //    });
+      //
+      //    if (!hasSubmitButton) {
+      //        innerForm.push({
+      //            type: "submit",
+      //            title: "Save"
+      //        });
+      //    }
+      //
+      //}
+
+      return innerForm;
+    };
+
+    factory.randomNumber = function () {
+      return new Date().getTime();
+    };
+
+    factory.getRandomQuery = function () {
+      return '?r=' + factory.randomNumber();
+    };
+
+    factory.parsePathParams = function (path) {
+      var parts = path.split('?');
+      return {
+        path: parts[0],
+        vars:
+          parts.length > 1
+            ? parts[1].split('&').reduce(function (acum, kv) {
+                var val = kv.split('=');
+                acum[val[0]] = val[1];
+                return acum;
+              }, {})
+            : {},
+      };
+    };
+
+    return factory;
+  }]);
+})();
+
 (function () {
     'use strict';
     angular.module('injectorApp')
@@ -2034,136 +2152,242 @@ function orderKeys(obj) {
 }());
 
 (function () {
-    'use strict';
-    angular.module('injectorApp').directive('modelButtons', ['$routeParams', '$http', '$q', '$route', 'models', '$location', '$rootScope', function ($routeParams, $http, $q, $route, models, $location, $rootScope) {
-        return {
-            restrict: 'AE',
-            scope: false, //Use the parent scope, in this case the modelController (this directive always will be loaded in the model page!)
-            //If not, we should set scope to true and implement here all the functions
-            templateUrl: 'js/directives/model-buttons/model-buttons.html',
-            link: function (scope, element, attrs, ngModel) {
-                scope.performAction = function (action) {
-                    if (action.type && action.type == "form") {
-                        //post as form
-                        models.postAsForm(action.path, action.data, 'post');
-                    } else if (action.type && action.type == "location") {
-                        $location.path(action.location);
-                    } else {
+  'use strict';
+  angular.module('injectorApp').directive('modelButtons', ['$routeParams', '$http', '$q', '$route', 'models', '$location', '$rootScope', '$httpParamSerializer', 'common', function (
+      $routeParams,
+      $http,
+      $q,
+      $route,
+      models,
+      $location,
+      $rootScope,
+      $httpParamSerializer,
+      common
+    ) {
+      return {
+        restrict: 'AE',
+        scope: false, //Use the parent scope, in this case the modelController (this directive always will be loaded in the model page!)
+        //If not, we should set scope to true and implement here all the functions
+        templateUrl: 'js/directives/model-buttons/model-buttons.html',
+        link: function (scope, element, attrs, ngModel) {
+          function getCurrentShard() {
+            var aux = models.getShard($routeParams.schema);
+            return aux ? aux.value : null;
+          }
 
-                        if (action.elements) {
+          function isActionAllowed(action, _currentShard) {
+            var currentShard = _currentShard || getCurrentShard();
 
-                            var data = {
-                                action: action.data, elements: scope.elements.filter(function (x) {
-                                    return x.checked;
-                                })
-                            };
+            if (action.allowedShards) {
+              if (Array.isArray(action.allowedShards))
+                return currentShard
+                  ? action.allowedShards.includes(currentShard)
+                  : false;
+              else if (action.allowedShards === '*')
+                return currentShard ? true : false;
+              else return false;
+            } else {
+              return true;
+            }
+          }
 
-                        } else {
-                            data = action.data;
-                        }
-                        console.log("Faig request!");
-                        var req = {
-                            method: action.method,
-                            url: action.path,
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            data: data
-                        };
+          scope.performAction = function (action) {
+            var currentShard = getCurrentShard();
+            if (isActionAllowed(action, currentShard)) {
+              var shardField;
+              var objParams = {};
 
-                        $http(req).then(function (res) {
+              if (action.shardMode)
+                shardField = action.shardField || '__RI-currentShard';
 
-                            if (action.reload) {
+              if (action.type && action.type == 'form') {
+                //post as form
 
-                                window.location.reload();
+                var endpoint = action.path;
 
-                            }
-                        });
-                    }
-                };
+                if (action.shardMode) {
+                  var objParams = common.parsePathParams(endpoint);
 
-                function exportElements() {
-                    var checked = scope.elements.filter(function (x) {
-                        return x.checked;
-                    });
+                  objParams[shardField] = currentShard;
 
-                    if (checked && checked.length > 0) {
-                        var query = { $or: [] };
-                        angular.forEach(checked, function (elem) {
-                            query.$or.push({ _id: elem._id });//We search by id
-                        });
-                        return query;
-                    } else {
-                        return scope.query;
-                    }
+                  switch (action.shardMode) {
+                    case 'url':
+                      endpoint += '?' + $httpParamSerializer(objParams);
+                      break;
+                    default:
+                      break;
+                  }
                 }
 
-                scope.export = function exportModels(format) {
-                    models.export(scope.schema, format, exportElements(), function (doc) {
-                    });
+                models.postAsForm(endpoint, action.data, 'post');
+              } else if (action.type && action.type == 'location') {
+                var endpoint = action.location;
+
+                if (action.shardMode) {
+                  var objParams = common.parsePathParams(endpoint);
+                  objParams[shardField] = currentShard;
+
+                  switch (action.shardMode) {
+                    case 'url':
+                      $location.path(endpoint).search(objParams);
+                      break;
+                    default:
+                      $location.path(endpoint);
+                      break;
+                  }
+                } else $location.path(endpoint);
+              } else {
+                var data;
+
+                if (action.elements) {
+                  data = {
+                    action: action.data,
+                    elements: scope.elements.filter(function (x) {
+                      return x.checked;
+                    }),
+                  };
+                } else {
+                  data = action.data;
+                }
+
+                var endpoint = action.path;
+                var headers = {
+                  'Content-Type': 'application/json',
                 };
 
+                if (action.shardMode) {
+                  var objParams = common.parsePathParams(endpoint);
+                  objParams[shardField] = currentShard;
 
-                scope.import = function importModels(format) {
-                    console.log("IMPORT", format, scope.schema);
-                    var file = "";
-                    models.import(scope.schema, format, file, function (doc) {
-                    });
+                  switch (action.shardMode) {
+                    case 'url':
+                      endpoint += '?' + $httpParamSerializer(objParams);
+                      break;
+                    default:
+                      break;
+                  }
+                }
+
+                var req = {
+                  method: action.method,
+                  url: endpoint,
+                  headers: headers,
+                  data: data,
                 };
 
-                scope.enableDelete = function () {
-                    if (!scope.elements) {
-                        return false;
-                    }
-                    var checkedValues = scope.elements.filter(function (val) {
-                        return val.checked;
-                    });
-
-                    return checkedValues.length > 0;
-                };
-
-                scope.removeSelected = function removeSelected() {
-                    var checkedValues = scope.elements.filter(function (val) {
-                        return val.checked;
-                    });
-
-                    if (checkedValues.length > 0) {
-                        scope.promptAlert(function (del) {
-                            if (del) {
-                                var deletions = [];
-                                angular.forEach(checkedValues, function (element) {
-                                    var deferred = $q.defer();
-                                    deletions.push(deferred.promise);
-
-                                    models.getModelConfig(scope.schema, function (cfg) {
-                                        var shard;
-
-                                        if (cfg.shard && cfg.shard.shardKey) {
-                                            shard = element[cfg.shard.shardKey];
-                                        }
-
-                                        if (scope.isDisabled(element)) {
-                                            models.removeDocumentByMongoId(scope.schema, element._id, shard, function (doc) {
-                                                deferred.resolve();
-                                            });
-                                        } else {
-                                            models.removeDocument(scope.schema, scope.id(element), shard, function (doc) {
-                                                deferred.resolve();
-                                            });
-                                        }
-                                    });
-                                });
-                                $q.all(deletions).then(function () {
-                                    $route.reload();
-                                });
-                            }
-                        });
-                    }
-                };
+                $http(req).then(function (res) {
+                  if (action.reload) {
+                    window.location.reload();
+                  }
+                });
+              }
             }
-        };
-    }]);
-}());
+          };
+
+          // $rootScope.$on('shardChangeEvent', function () {
+          //   scope.$digest();
+          // });
+
+          scope.allowedActions = function (actions) {
+            var currentShard = getCurrentShard();
+
+            return actions.filter(function (action) {
+              return isActionAllowed(action, currentShard);
+            });
+          };
+
+          function exportElements() {
+            var checked = scope.elements.filter(function (x) {
+              return x.checked;
+            });
+
+            if (checked && checked.length > 0) {
+              var query = { $or: [] };
+              angular.forEach(checked, function (elem) {
+                query.$or.push({ _id: elem._id }); //We search by id
+              });
+              return query;
+            } else {
+              return scope.query;
+            }
+          }
+
+          scope.export = function exportModels(format) {
+            models.export(scope.schema, format, exportElements(), function (
+              doc
+            ) {});
+          };
+
+          scope.import = function importModels(format) {
+            console.log('IMPORT', format, scope.schema);
+            var file = '';
+            models.import(scope.schema, format, file, function (doc) {});
+          };
+
+          scope.enableDelete = function () {
+            if (!scope.elements) {
+              return false;
+            }
+            var checkedValues = scope.elements.filter(function (val) {
+              return val.checked;
+            });
+
+            return checkedValues.length > 0;
+          };
+
+          scope.removeSelected = function removeSelected() {
+            var checkedValues = scope.elements.filter(function (val) {
+              return val.checked;
+            });
+
+            if (checkedValues.length > 0) {
+              scope.promptAlert(function (del) {
+                if (del) {
+                  var deletions = [];
+                  angular.forEach(checkedValues, function (element) {
+                    var deferred = $q.defer();
+                    deletions.push(deferred.promise);
+
+                    models.getModelConfig(scope.schema, function (cfg) {
+                      var shard;
+
+                      if (cfg.shard && cfg.shard.shardKey) {
+                        shard = element[cfg.shard.shardKey];
+                      }
+
+                      if (scope.isDisabled(element)) {
+                        models.removeDocumentByMongoId(
+                          scope.schema,
+                          element._id,
+                          shard,
+                          function (doc) {
+                            deferred.resolve();
+                          }
+                        );
+                      } else {
+                        models.removeDocument(
+                          scope.schema,
+                          scope.id(element),
+                          shard,
+                          function (doc) {
+                            deferred.resolve();
+                          }
+                        );
+                      }
+                    });
+                  });
+                  $q.all(deletions).then(function () {
+                    $route.reload();
+                  });
+                }
+              });
+            }
+          };
+        },
+      };
+    },
+  ]);
+})();
 
 (function () {
     'use strict';
