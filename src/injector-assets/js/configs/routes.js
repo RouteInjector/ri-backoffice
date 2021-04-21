@@ -145,15 +145,7 @@
 
           //TO-DO: 20-04-2021 -> hide custom pages from menu (user.role)
           if (page.menu) {
-            if (page.menu.roles && Array.isArray(page.menu.roles)) {
-              loginProvider.getUser(function (user) {
-                if (user && user.role && page.menu.roles.includes(user.role)) {
-                  menu.push(page.menu);
-                }
-              });
-            } else {
-              menu.push(page.menu);
-            }
+            menu.push(page.menu);
           }
         }
         customMenuProvider.setCustomMenu(menu);

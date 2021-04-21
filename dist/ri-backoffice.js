@@ -83,272 +83,307 @@
 
 })(angular);
 (function () {
-    'use strict';
-    var app = angular.module('injectorApp', ['ngRoute', 'ngBiscuit', 'schemaForm', 'datePicker', 'ui.select',
-            'ui.ace', 'ui.codemirror', 'ui.bootstrap', 'ngFileUpload', 'ngDroplet', 'punchCard', 'nvd3ChartDirectives', 'flash', 'ngDialog', 'angular-loading-bar',
-            'pascalprecht.translate', 'ngCookies', 'nemLogging', 'ui-leaflet', 'angular-toArrayFilter'],
-        ['$rootScopeProvider', function ($rootScopeProvider) {
-            $rootScopeProvider.digestTtl(15);
-        }])
-        .run(['$rootScope', 'configs', function ($rootScope, configs) {
-            $rootScope.configs = configs;
-        }]);
+  'use strict';
+  var app = angular
+    .module(
+      'injectorApp',
+      [
+        'ngRoute',
+        'ngBiscuit',
+        'schemaForm',
+        'datePicker',
+        'ui.select',
+        'ui.ace',
+        'ui.codemirror',
+        'ui.bootstrap',
+        'ngFileUpload',
+        'ngDroplet',
+        'punchCard',
+        'nvd3ChartDirectives',
+        'flash',
+        'ngDialog',
+        'angular-loading-bar',
+        'pascalprecht.translate',
+        'ngCookies',
+        'nemLogging',
+        'ui-leaflet',
+        'angular-toArrayFilter',
+      ],
+      ['$rootScopeProvider', function ($rootScopeProvider) {
+        $rootScopeProvider.digestTtl(15);
+      }]
+    )
+    .run(['$rootScope', 'configs', function ($rootScope, configs) {
+      $rootScope.configs = configs;
+    }]);
 
-    angular.lazy("injectorApp")
-        .resolve(['$http', function ($http) {
-            return $http.get('/configs')
-                .then(function (resp) {
-                    app.constant('configs', resp.data);
-                });
-        }])
-        .resolve(['$http', '$q', function ($http, $q) {
+  angular
+    .lazy('injectorApp')
+    .resolve([
+      '$http',
+      function ($http) {
+        return $http.get('/configs').then(function (resp) {
+          app.constant('configs', resp.data);
+        });
+      },
+    ])
+    .resolve([
+      '$http',
+      '$q',
+      function ($http, $q) {
+        var deferred = $q.defer();
+        $http.get('/admin/extensions').then(function (resp) {
+          app.constant('extensions', resp.data);
 
-            var deferred = $q.defer();
-            $http.get('/admin/extensions').then(function (resp) {
-                app.constant('extensions', resp.data);
+          var extensions = resp.data;
+          var assets = $('asset-loader');
+          var scripts = [];
 
-                var extensions = resp.data;
-                var assets = $('asset-loader');
-                var scripts = [];
+          for (var i = 0; i < assets.length; i++) {
+            var cache = [];
 
-                for (var i = 0; i < assets.length; i++) {
-                    var cache = [];
+            var asset = assets[i];
+            var src = asset.attributes.src.nodeValue;
+            var type = asset.attributes.type.nodeValue;
 
-                    var asset = assets[i];
-                    var src = asset.attributes.src.nodeValue;
-                    var type = asset.attributes.type.nodeValue;
-
-                    if (src === 'files') {
-                        if (extensions.files[type] && extensions.files[type].length) {
-                            cache = cache.concat(extensions.files[type]);
-                        }
-                    } else if (src === 'pages') {
-                        for (var j in extensions.pages) {
-                            var p = extensions.pages[j];
-                            if (p.backoffice) {
-                                if (p[type] && p[type].length) {
-                                    cache = cache.concat(p[type]);
-                                }
-                            }
-                        }
-                    }
-
-                    if (type === 'css') {
-                        asset.appendChild(createCSSNodes(cache));
-                    } else if (type === 'js') {
-                        if (cache && cache.length) {
-                            scripts = scripts.concat(cache);
-                        }
-                    }
+            if (src === 'files') {
+              if (extensions.files[type] && extensions.files[type].length) {
+                cache = cache.concat(extensions.files[type]);
+              }
+            } else if (src === 'pages') {
+              for (var j in extensions.pages) {
+                var p = extensions.pages[j];
+                if (p.backoffice) {
+                  if (p[type] && p[type].length) {
+                    cache = cache.concat(p[type]);
+                  }
                 }
-
-                //$.getMultiScripts(scripts).done(function () {
-                //    deferred.resolve();
-                //});
-                getScripts(scripts, function () {
-                    deferred.resolve();
-                });
-
-            });
-
-            return deferred.promise;
-        }])
-        .bootstrap();
-
-    function createCSSNodes(obj) {
-        var div = document.createElement('div');
-        for (var i in obj) {
-            var link = document.createElement('link');
-            link.href = obj[i];
-            link.rel = 'stylesheet';
-            div.appendChild(link);
-        }
-        return div;
-    }
-
-    function getScripts(scripts, callback) {
-        if (!scripts || !scripts.length) {
-            return callback();
-        }
-        var progress = 0;
-        var internalCallback = function () {
-            if (++progress == scripts.length) {
-                $.ajaxSetup({async: true});
-                callback();
+              }
             }
-        };
 
-        $.ajaxSetup({async: false});
-        scripts.forEach(function (script) {
-            $.getScript(script, internalCallback);
+            if (type === 'css') {
+              asset.appendChild(createCSSNodes(cache));
+            } else if (type === 'js') {
+              if (cache && cache.length) {
+                scripts = scripts.concat(cache);
+              }
+            }
+          }
+
+          //$.getMultiScripts(scripts).done(function () {
+          //    deferred.resolve();
+          //});
+          getScripts(scripts, function () {
+            deferred.resolve();
+          });
         });
 
+        return deferred.promise;
+      },
+    ])
+    .bootstrap();
+
+  function createCSSNodes(obj) {
+    var div = document.createElement('div');
+    for (var i in obj) {
+      var link = document.createElement('link');
+      link.href = obj[i];
+      link.rel = 'stylesheet';
+      div.appendChild(link);
     }
+    return div;
+  }
 
-    $.getMultiScripts = function (arr, path) {
-        var _arr = $.map(arr, function (scr) {
-            return $.getScript((path || "") + scr);
-        });
-
-        _arr.push($.Deferred(function (deferred) {
-            $(deferred.resolve);
-        }));
-
-        return $.when.apply($, _arr);
+  function getScripts(scripts, callback) {
+    if (!scripts || !scripts.length) {
+      return callback();
+    }
+    var progress = 0;
+    var internalCallback = function () {
+      if (++progress == scripts.length) {
+        $.ajaxSetup({ async: true });
+        callback();
+      }
     };
+
+    $.ajaxSetup({ async: false });
+    scripts.forEach(function (script) {
+      $.getScript(script, internalCallback);
+    });
+  }
+
+  $.getMultiScripts = function (arr, path) {
+    var _arr = $.map(arr, function (scr) {
+      return $.getScript((path || '') + scr);
+    });
+
+    _arr.push(
+      $.Deferred(function (deferred) {
+        $(deferred.resolve);
+      })
+    );
+
+    return $.when.apply($, _arr);
+  };
 })();
 
 (function () {
-    'use strict';
+  'use strict';
 
-    angular.module('injectorApp')
-        .config(['$routeProvider', 'configs', 'extensions', 'customMenuProvider', function ($routeProvider, configs, extensions, customMenuProvider) {
+  angular
+    .module('injectorApp')
+    .config(['$routeProvider', 'configs', 'extensions', 'customMenuProvider', function ($routeProvider, configs, extensions, customMenuProvider) {
+      var authCheck = function (
+        $q,
+        $rootScope,
+        $location,
+        $http,
+        loginProvider,
+        configs
+      ) {
+        var defer = $q.defer();
+        if (configs.auth) {
+          loginProvider.getUser(function (user) {
+            if (!user) {
+              $location.path('/login');
+            } else {
+              $http.defaults.headers.common.Authorization =
+                'BEARER ' + user.token;
+              $rootScope.login = undefined;
+            }
+            defer.resolve();
+          });
+        } else {
+          $rootScope.allowedUser = true;
+          defer.resolve();
+        }
+        return defer.promise;
+      };
+      authCheck.$inject = ['$q', '$rootScope', '$location', '$http', 'loginProvider', 'configs'];
 
-            var authCheck = function ($q, $rootScope, $location, $http, loginProvider, configs) {
-                var defer = $q.defer();
-                if (configs.auth) {
-                    loginProvider.getUser(function (user) {
-                        if (!user) {
-                            $location.path('/login');
-                        } else {
-                            $http.defaults.headers.common.Authorization = 'BEARER ' + user.token;
-                            $rootScope.login = undefined;
-                        }
-                        defer.resolve();
-                    });
+      var homePage = 'html/models.html';
+      if (configs.backoffice.home) {
+        homePage = configs.backoffice.home;
+      }
 
+      $routeProvider
+        .when('/', {
+          templateUrl: homePage,
+          controller: 'MainController',
+          resolve: {
+            app: authCheck,
+          },
+        })
+        .when('/model/:schema', {
+          templateUrl: 'html/model.html',
+          controller: 'ModelController',
+          resolve: {
+            app: authCheck,
+          },
+        })
+        .when('/model/:schema/new', {
+          templateUrl: 'html/create-and-update.html',
+          controller: 'CreateController',
+          resolve: {
+            app: authCheck,
+          },
+          reloadOnSearch: false,
+        })
+        .when('/model/:schema/update/:id', {
+          templateUrl: 'html/create-and-update.html',
+          controller: 'UpdateController',
+          resolve: {
+            app: authCheck,
+          },
+          reloadOnSearch: false,
+        })
+        .when('/model/:schema/update/:id/:shard', {
+          templateUrl: 'html/create-and-update.html',
+          controller: 'UpdateController',
+          resolve: {
+            app: authCheck,
+          },
+          reloadOnSearch: false,
+        })
+        .when('/model/:schema/graphs', {
+          templateUrl: 'html/graphs.html',
+          controller: 'GraphsController',
+          resolve: {
+            app: authCheck,
+          },
+        })
+        .when('/login', {
+          // login / password
+          templateUrl: 'html/login.html',
+          controller: 'LoginController',
+          resolve: {
+            app: ['$q', '$rootScope', '$location', 'loginProvider', function ($q, $rootScope, $location, loginProvider) {
+              var defer = $q.defer();
+              loginProvider.getUser(function (user) {
+                if (user) {
+                  $location.path('/');
                 } else {
-                    $rootScope.allowedUser = true;
-                    defer.resolve();
+                  $rootScope.login = true;
                 }
-                return defer.promise;
-            };
-            authCheck.$inject = ['$q', '$rootScope', '$location', '$http', 'loginProvider', 'configs'];
+                defer.resolve();
+              });
+              return defer.promise;
+            }],
+          },
+        })
+        .when('/logout', {
+          resolve: {
+            app: ['$q', '$rootScope', '$location', 'loginProvider', function ($q, $rootScope, $location, loginProvider) {
+              var defer = $q.defer();
+              loginProvider.logout();
+              $location.path('/');
+              defer.resolve();
+              return defer.promise;
+            }],
+          },
+        })
+        .when('/settings', {
+          templateUrl: 'html/settings.html',
+          controller: 'SettingsController',
+        });
 
-            var homePage = 'html/models.html';
-            if (configs.backoffice.home) {
-                homePage = configs.backoffice.home;
-            }
+      if (configs.images && configs.images.gallery) {
+        $routeProvider.when('/gallery', {
+          templateUrl: 'html/gallery.html',
+          resolve: {
+            app: authCheck,
+          },
+        });
+      }
 
-            $routeProvider
-                .when('/', {
-                    templateUrl: homePage,
-                    controller: 'MainController',
-                    resolve: {
-                        app: authCheck
-                    }
-                })
-                .when('/model/:schema', {
-                    templateUrl: 'html/model.html',
-                    controller: 'ModelController',
-                    resolve: {
-                        app: authCheck
-                    }
-                })
-                .when('/model/:schema/new', {
-                    templateUrl: 'html/create-and-update.html',
-                    controller: 'CreateController',
-                    resolve: {
-                        app: authCheck
-                    },
-                    reloadOnSearch: false
-                })
-                .when('/model/:schema/update/:id', {
-                    templateUrl: 'html/create-and-update.html',
-                    controller: 'UpdateController',
-                    resolve: {
-                        app: authCheck
-                    },
-                    reloadOnSearch: false
-                })
-                .when('/model/:schema/update/:id/:shard', {
-                    templateUrl: 'html/create-and-update.html',
-                    controller: 'UpdateController',
-                    resolve: {
-                        app: authCheck
-                    },
-                    reloadOnSearch: false
-                })
-                .when('/model/:schema/graphs', {
-                    templateUrl: 'html/graphs.html',
-                    controller: 'GraphsController',
-                    resolve: {
-                        app: authCheck
-                    }
-                })
-                .when('/login', {
-                    // login / password
-                    templateUrl: 'html/login.html',
-                    controller: 'LoginController',
-                    resolve: {
-                        app: ['$q', '$rootScope', '$location', 'loginProvider', function ($q, $rootScope, $location, loginProvider) {
-                            var defer = $q.defer();
-                            loginProvider.getUser(function (user) {
-                                if (user) {
-                                    $location.path('/');
-                                } else {
-                                    $rootScope.login = true;
-                                }
-                                defer.resolve();
-                            });
-                            return defer.promise;
-                        }]
-                    }
-                })
-                .when('/logout', {
-                    resolve: {
-                        app: ['$q', '$rootScope', '$location', 'loginProvider', function ($q, $rootScope, $location, loginProvider) {
-                            var defer = $q.defer();
-                            loginProvider.logout();
-                            $location.path('/');
-                            defer.resolve();
-                            return defer.promise;
-                        }]
-                    }
-                })
-                .when('/settings', {
-                    templateUrl: 'html/settings.html',
-                    controller: 'SettingsController'
-                });
+      if (extensions && extensions.pages) {
+        var menu = [];
+        for (var i in extensions.pages) {
+          var page = extensions.pages[i];
 
-            if (configs.images && configs.images.gallery) {
-                $routeProvider
-                    .when('/gallery', {
-                        templateUrl: 'html/gallery.html',
-                        resolve: {
-                            app: authCheck
-                        }
-                    });
-            }
+          //Add the route for the custom page. modelName controls the sharding selector if given
+          if (page.backoffice) {
+            $routeProvider.when('/' + page.url, {
+              templateUrl: page.template,
+              controller: page.controller,
+              resolve: {
+                app: authCheck,
+              },
+              modelName: page.modelName,
+            });
+          }
 
+          //TO-DO: 20-04-2021 -> hide custom pages from menu (user.role)
+          if (page.menu) {
+            menu.push(page.menu);
+          }
+        }
+        customMenuProvider.setCustomMenu(menu);
+      }
 
-            if (extensions && extensions.pages) {
-                var menu = [];
-                for (var i in extensions.pages) {
-                    var page = extensions.pages[i];
-
-                    //Add the route for the custom page. modelName controls the sharding selector if given
-                    if (page.backoffice) {
-                        $routeProvider.when('/' + page.url, {
-                            templateUrl: page.template,
-                            controller: page.controller,
-                            resolve: {
-                                app: authCheck
-                            },
-                            modelName: page.modelName
-                        });
-                    }
-
-                    if (page.menu) {
-                        menu.push(page.menu);
-                    }
-                }
-                customMenuProvider.setCustomMenu(menu);
-            }
-
-            $routeProvider.otherwise({redirectTo: '/'});
-        }]);
-}());
+      $routeProvider.otherwise({ redirectTo: '/' });
+    }]);
+})();
 
 (function () {
     'use strict';
@@ -387,84 +422,110 @@
 
 }());
 (function () {
-    'use strict';
-    angular.module('injectorApp')
-        .provider('customMenu', function () {
-        var menuElements;
+  'use strict';
+  angular.module('injectorApp').provider('customMenu', function () {
+    var menuElements;
 
-        this.setCustomMenu = function(value) {
-            menuElements = value;
-        };
+    this.setCustomMenu = function (value) {
+      menuElements = value;
+    };
 
-        this.$get = function(){
-            return menuElements;
-        };
-    });
-}());
+    this.$get = ['loginProvider', function (loginProvider) {
+      return {
+        getSections: function (cb) {
+          loginProvider.getUser(function (user) {
+            var filtered = [];
+
+            if (user) {
+              filtered = menuElements.filter(function (elem) {
+                if (elem.roles && Array.isArray(elem.roles))
+                  return elem.roles.includes(user.role);
+                else return elem;
+              });
+            } else {
+              filtered = menuElements.filter(function (elem) {
+                return !!elem.roles;
+              });
+            }
+
+            return cb(filtered);
+          });
+        },
+      };
+    }];
+  });
+})();
+
 (function () {
-    'use strict';
-    angular.module('injectorApp')
-        .provider('loginProvider', function () {
+  'use strict';
+  angular.module('injectorApp').provider('loginProvider', function () {
+    this.$get = ['$http', '$location', 'cookieStore', '$rootScope', function ($http, $location, cookieStore, $rootScope) {
+      var factory = {};
+      $http.defaults.headers.common['Client-Type'] = 'backoffice';
+      $http.defaults.headers.common.profile = 'back';
+      factory.login = function (userModel, cb) {
+        $http
+          .post('/auth/login', userModel)
+          .success(function (res) {
+            var user = {};
+            //user.name = userModel.login;
+            user.login = userModel.login;
+            user.role = res.role;
+            user.token = res.token;
+            var cookieOptions = { path: '/', end: Infinity };
+            cookieStore.put('user', JSON.stringify(user), cookieOptions);
+            $http.defaults.headers.common.Authorization = 'BEARER ' + res.token;
+            $rootScope.$broadcast('login', user);
+            $rootScope.allowedUser = true;
+            cb(user);
+          })
+          .error(function (err) {
+            var cookieOptions = { path: '/' };
+            cookieStore.remove('user', cookieOptions);
+            $rootScope.$broadcast('logout', undefined);
+            $rootScope.allowedUser = false;
+            cb(false);
+          });
+      };
 
-            this.$get = ['$http', '$location', 'cookieStore', '$rootScope', function ($http, $location, cookieStore, $rootScope) {
-                var factory = {};
-                $http.defaults.headers.common['Client-Type'] = 'backoffice';
-                $http.defaults.headers.common.profile = 'back';
-                factory.login = function (userModel, cb) {
-                    $http.post('/auth/login', userModel).success(function (res) {
-                        var user = {};
-                        //user.name = userModel.login;
-                        user.login = userModel.login;
-                        user.role = res.role;
-                        user.token = res.token;
-                        var cookieOptions = {path: '/', end: Infinity};
-                        cookieStore.put('user', JSON.stringify(user), cookieOptions);
-                        $http.defaults.headers.common.Authorization = 'BEARER ' + res.token;
-                        $rootScope.$broadcast('login', user);
-                        $rootScope.allowedUser = true;
-                        cb(user);
-                    }).error(function (err) {
-                        var cookieOptions = {path: '/'};
-                        cookieStore.remove('user', cookieOptions);
-                        $rootScope.$broadcast('logout', undefined);
-                        $rootScope.allowedUser = false;
-                        cb(false);
-                    });
-                };
+      factory.getUser = function (cb) {
+        var user = JSON.parse(cookieStore.get('user'));
+        if (
+          user &&
+          !$rootScope.allowedUser &&
+          user.login &&
+          (user.password || user.token)
+        ) {
+          factory.login(user, function (logged) {
+            if (logged) {
+              angular.extend(user, logged);
+              cb(logged);
+            } else {
+              cb(undefined);
+            }
+          });
+        } else {
+          if (!user) {
+            $rootScope.allowedUser = false;
+          } else {
+            //$rootScope.$broadcast('login', user);
+          }
 
-                factory.getUser = function (cb) {
-                    var user = JSON.parse(cookieStore.get('user'));
-                    if (user && !$rootScope.allowedUser && user.login && (user.password || user.token)) {
-                        factory.login(user, function (logged) {
-                            if (logged) {
-                                angular.extend(user, logged);
-                                cb(logged);
-                            } else {
-                                cb(undefined);
-                            }
-                        });
-                    } else {
-                        if (!user) {
-                            $rootScope.allowedUser = false;
-                        } else {
-                            //$rootScope.$broadcast('login', user);
-                        }
+          cb(user);
+        }
+      };
 
-                        cb(user);
-                    }
-                };
+      factory.logout = function () {
+        var cookieOptions = { path: '/' };
+        cookieStore.remove('user', cookieOptions);
+        $location.path('/login');
+        $rootScope.$broadcast('logout', undefined);
+      };
 
-                factory.logout = function () {
-                    var cookieOptions = {path: '/'};
-                    cookieStore.remove('user', cookieOptions);
-                    $location.path('/login');
-                    $rootScope.$broadcast('logout', undefined);
-                };
-
-                return factory;
-            }];
-        });
-}());
+      return factory;
+    }];
+  });
+})();
 
 (function () {
   'use strict';
@@ -1868,149 +1929,157 @@
 }());
 
 (function () {
-    'use strict';
-    angular.module('injectorApp')
-        .directive('sideMenu', function () {
-            return {
-                restrict: 'E',
-                scope: false,
-                templateUrl: 'html/side-menu.html',
-                controller: ['$scope', '$routeParams', '$location', 'common', 'models', 'customMenu', '$window', '$rootScope', function ($scope, $routeParams, $location, common, models, customMenu, $window, $rootScope) {
-                    $scope.common = common;
-                    $scope.$on("$routeChangeStart", function (event, next, current) {
-                        if (next.params.schema) {
-                            $scope.actualSchema = next.params.schema;
-                        }
-                    });
-                    $scope.isDisabled = false;
-                    $scope.isOpen = false;
-
-                    var render = function () {
-                        $scope.sections = new Sections();
-
-                        angular.forEach(customMenu, function (elem) {
-                            $scope.sections.add(elem.section, elem.title, elem);
-                        });
-
-                        if (models.isGalleryEnabled()) {
-                            $scope.sections.add("Gallery", "Gallery", {
-                                clickTo: "gallery"
-                            });
-                        }
-
-                        models.getModels(function (m) {
-                            angular.forEach(m, function (schema) {
-                                models.getModelConfig(schema, function (config) {
-                                    if (!config.hideMenu) {
-                                        if (config.isSingle) {
-                                            models.getSingleModel(schema, function (doc) {
-                                                if (doc) {
-                                                    config.clickTo = "model/" + schema + "/update/" + doc[config.id];
-                                                } else {
-                                                    config.clickTo = "model/" + schema + "/new";
-                                                }
-                                            });
-                                        } else {
-                                            config.clickTo = "model/" + schema;
-                                        }
-                                        var menuTitle = config.title || schema;
-                                        $scope.sections.add(config.section, menuTitle, config);
-                                    }
-                                });
-                            });
-                        });
-                    };
-
-
-                    render();
-                    $rootScope.$on('invalidate', function () {
-                        render();
-                    });
-
-                    $scope.openSection = function (section) {
-                        $scope.actualSection = section;
-                    };
-
-                    $scope.click = function (section, name, conf) {
-                        $scope.parentSchema = section;
-                        $scope.actualSchema = name;
-                        $scope.actualSection = conf.section || section;
-                        if (conf.clickTo) {
-                            $location.path(conf.clickTo);
-                        } else if (conf.url) {
-                            $window.location.href = conf.url;
-                        }
-
-                        $scope.isMenuCollapsed = true;
-                    };
-
-                    $scope.isInstanceOf = function (obj) {
-                        return (obj instanceof Section);
-                    };
-
-                    $scope.debug = function (a, b) {
-                        console.log(a, b);
-                    };
-                }]
-            };
+  'use strict';
+  angular.module('injectorApp').directive('sideMenu', function () {
+    return {
+      restrict: 'E',
+      scope: false,
+      templateUrl: 'html/side-menu.html',
+      controller: ['$scope', '$routeParams', '$location', 'common', 'models', 'customMenu', '$window', '$rootScope', function (
+        $scope,
+        $routeParams,
+        $location,
+        common,
+        models,
+        customMenu,
+        $window,
+        $rootScope
+      ) {
+        $scope.common = common;
+        $scope.$on('$routeChangeStart', function (event, next, current) {
+          if (next.params.schema) {
+            $scope.actualSchema = next.params.schema;
+          }
         });
-}());
+        $scope.isDisabled = false;
+        $scope.isOpen = false;
 
-var Section = function () {
-};
+        var render = function () {
+          $scope.sections = new Sections();
+
+          customMenu.getSections(function (sections) {
+            angular.forEach(sections, function (elem) {
+              $scope.sections.add(elem.section, elem.title, elem);
+            });
+          });
+
+          if (models.isGalleryEnabled()) {
+            $scope.sections.add('Gallery', 'Gallery', {
+              clickTo: 'gallery',
+            });
+          }
+
+          models.getModels(function (m) {
+            angular.forEach(m, function (schema) {
+              models.getModelConfig(schema, function (config) {
+                if (!config.hideMenu) {
+                  if (config.isSingle) {
+                    models.getSingleModel(schema, function (doc) {
+                      if (doc) {
+                        config.clickTo =
+                          'model/' + schema + '/update/' + doc[config.id];
+                      } else {
+                        config.clickTo = 'model/' + schema + '/new';
+                      }
+                    });
+                  } else {
+                    config.clickTo = 'model/' + schema;
+                  }
+                  var menuTitle = config.title || schema;
+                  $scope.sections.add(config.section, menuTitle, config);
+                }
+              });
+            });
+          });
+        };
+
+        render();
+        $rootScope.$on('invalidate', function () {
+          render();
+        });
+
+        $scope.openSection = function (section) {
+          $scope.actualSection = section;
+        };
+
+        $scope.click = function (section, name, conf) {
+          $scope.parentSchema = section;
+          $scope.actualSchema = name;
+          $scope.actualSection = conf.section || section;
+          if (conf.clickTo) {
+            $location.path(conf.clickTo);
+          } else if (conf.url) {
+            $window.location.href = conf.url;
+          }
+
+          $scope.isMenuCollapsed = true;
+        };
+
+        $scope.isInstanceOf = function (obj) {
+          return obj instanceof Section;
+        };
+
+        $scope.debug = function (a, b) {
+          console.log(a, b);
+        };
+      }],
+    };
+  });
+})();
+
+var Section = function () {};
 var Sections = function () {
+  var menu = {};
 
+  this.get = function () {
+    return orderKeys(menu);
+  };
 
-    var menu = {};
+  this.add = function (key, schema, config) {
+    /**
+     * Dot notation loop: http://stackoverflow.com/a/10253459/607354
+     */
+    var levels = key.split('.');
+    var curLevel = menu;
+    var i = 0;
+    while (i < levels.length - 1) {
+      if (typeof curLevel[levels[i]] === 'undefined') {
+        curLevel[levels[i]] = new Section();
+      }
 
-    this.get = function () {
-        return orderKeys(menu);
-    };
+      curLevel = curLevel[levels[i]];
+      i++;
+    }
 
-
-    this.add = function (key, schema, config) {
-        /**
-         * Dot notation loop: http://stackoverflow.com/a/10253459/607354
-         */
-        var levels = key.split(".");
-        var curLevel = menu;
-        var i = 0;
-        while (i < levels.length - 1) {
-            if (typeof curLevel[levels[i]] === 'undefined') {
-                curLevel[levels[i]] = new Section();
-            }
-
-            curLevel = curLevel[levels[i]];
-            i++;
-        }
-
-        curLevel[levels[levels.length - 1]] = curLevel[levels[levels.length - 1]] || new Section();
-        curLevel[levels[levels.length - 1]][schema] = config;
-    };
+    curLevel[levels[levels.length - 1]] =
+      curLevel[levels[levels.length - 1]] || new Section();
+    curLevel[levels[levels.length - 1]][schema] = config;
+  };
 };
 function orderKeys(obj) {
+  var keys = Object.keys(obj).sort(function keyOrder(k1, k2) {
+    if (k1 < k2) return -1;
+    else if (k1 > k2) return +1;
+    else return 0;
+  });
 
-    var keys = Object.keys(obj).sort(function keyOrder(k1, k2) {
-        if (k1 < k2) return -1;
-        else if (k1 > k2) return +1;
-        else return 0;
-    });
+  var i,
+    after = {};
+  for (i = 0; i < keys.length; i++) {
+    after[keys[i]] = obj[keys[i]];
+    delete obj[keys[i]];
+  }
 
-    var i, after = {};
-    for (i = 0; i < keys.length; i++) {
-        after[keys[i]] = obj[keys[i]];
-        delete obj[keys[i]];
+  for (i = 0; i < keys.length; i++) {
+    if (Object.keys(after[keys[i]]).length > 1) {
+      obj[keys[i]] = orderKeys(after[keys[i]]);
+    } else {
+      obj[keys[i]] = after[keys[i]];
     }
-
-    for (i = 0; i < keys.length; i++) {
-        if(Object.keys(after[keys[i]]).length > 1){
-            obj[keys[i]] = orderKeys(after[keys[i]]);
-        } else {
-            obj[keys[i]] = after[keys[i]];
-        }
-    }
-    return obj;
+  }
+  return obj;
 }
+
 (function () {
     'use strict';
     angular.module('injectorApp')
