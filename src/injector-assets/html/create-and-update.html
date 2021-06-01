@@ -12,12 +12,12 @@
             | translate}}</strong>
             <ul ng-repeat="(type, errors) in validationErrors">
                 <li ng-repeat="f in errors">{{'CREATE_UPDATE.VALIDATION.MSG' | translate}}
-                    {{f.$name}} 
+                    {{ f.$name || type }} 
                 </li>
             </ul>
         </div>
         <!--<form name="ngForm" sf-schema="schema" sf-form="form" sf-model="model"-->
-        <!--ng-submit="submitForm(ngForm,model)"></form>-->
+        <!--ng-submit="submitForm(ngForm,model)"></form> {{ f.$name }} -->
         <form name="ngForm" ng-submit="submitForm(ngForm,model, false)">
             <div class="form-group row" ng-show="buttonsPosition=='top' || buttonsPosition=='both'">
                 <div class="col-lg-12">

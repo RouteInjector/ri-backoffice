@@ -10,7 +10,7 @@
             $scope.buttonsPosition = configs.backoffice.buttonsPosition || 'bottom';
 
             function walkThroughSchema(schema) {
-            
+
                 var keys = Object.keys(schema);
                 for (var i in keys) {
                     if (schema[keys[i]]) {
@@ -103,12 +103,23 @@
                     }
 
                 } else {
-                    $scope.validation = !form.$valid;
-                    $scope.validationErrors = form.$error;
-                    $location.hash('error');
-                    $anchorScroll.yOffset = 100;
-                    $anchorScroll();
+                    //console.log("Form: ", form);
 
+                    if (form.$error.schemaForm) {
+                        delete form.$error.schemaForm;
+                    }
+
+                    var showValidation = !form.$valid && Object.keys(form.$error).length;
+
+                    if (showValidation) {
+                    
+                        $scope.validation = true;
+                        $scope.validationErrors = form.$error;
+                        $location.hash('error');
+                        $anchorScroll.yOffset = 100;
+                        $anchorScroll();
+                    
+                    } 
                 }
             };
 
