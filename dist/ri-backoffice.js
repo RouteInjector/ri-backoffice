@@ -1246,7 +1246,7 @@
 
                 provider.search = function (modelName, b, shard, cb) {
                     var body = JSON.stringify(b);
-                    var mainKey = shard ? modelName + "_" + shard : shard;
+                    var mainKey = shard ? modelName + "_" + shard : modelName;
 
                     //console.log("[SelectCache] POST FROM SELECT", modelName, b);
 
@@ -1297,7 +1297,7 @@
 
                 provider.getDocument = function (modelName, id, shard, cb) {
                     //console.log("[SelectCache] GET FROM SELECT", modelName, id);
-                    var mainKey = shard ? modelName + "_" + shard : shard;
+                    var mainKey = shard ? modelName + "_" + shard : modelName;
 
                     if (!selectCacheService.cache[mainKey]) {
                         selectCacheService.cache[mainKey] = {};
@@ -1340,7 +1340,7 @@
 
                 function httpCall(model, shard) {
                     models.getModelConfig(model, function (cfg) {
-                        var mainKey = shard ? model + "_" + shard : shard;
+                        var mainKey = shard ? model + "_" + shard : model;
 
                         var q = {};
                         if (shard && cfg.shard && cfg.shard.shardKey) {
@@ -1366,6 +1366,10 @@
                             //console.log("[SelectCache] GET SELECT RESULT", model, q, result);
                             angular.forEach(result, function (doc) {
                                 var id = doc[cfg.id];
+
+                                if (!selectCacheService.cache[mainKey].gets[id])
+                                    selectCacheService.cache[mainKey].gets[id] = {};
+
                                 selectCacheService.cache[mainKey].gets[id].result = doc;
                             });
 
