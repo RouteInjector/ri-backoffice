@@ -39,6 +39,7 @@
       '$http',
       function ($http) {
         return $http.get('/configs').then(function (resp) {
+          console.log("confs: ", resp);
           app.constant('configs', resp.data);
         });
       },

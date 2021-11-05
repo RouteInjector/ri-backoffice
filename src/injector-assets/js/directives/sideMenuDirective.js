@@ -12,6 +12,7 @@
         common,
         models,
         customMenu,
+        loginProvider,
         $window,
         $rootScope
       ) {
@@ -33,11 +34,15 @@
             });
           });
 
-          if (models.isGalleryEnabled()) {
-            $scope.sections.add('Gallery', 'Gallery', {
-              clickTo: 'gallery',
-            });
-          }
+          loginProvider.getUser(function (user) {
+            
+            if (models.isGalleryEnabled(user ? user.role : null)) {
+              $scope.sections.add('Gallery', 'Gallery', {
+                clickTo: 'gallery',
+              });
+            }
+            
+          });
 
           models.getModels(function (m) {
             angular.forEach(m, function (schema) {

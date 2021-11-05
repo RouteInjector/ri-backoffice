@@ -123,6 +123,7 @@
       '$http',
       function ($http) {
         return $http.get('/configs').then(function (resp) {
+          console.log("confs: ", resp);
           app.constant('configs', resp.data);
         });
       },
@@ -1079,12 +1080,34 @@
         });
       };
 
-      service.isGalleryEnabled = function () {
-        return (
-          configs.images &&
-          configs.images.gallery &&
-          configs.images.gallery.endpoint
-        );
+      service.isGalleryEnabled = function (role) {
+        
+        console.log("Role: ", role, "Conf: ", configs.images.gallery);
+
+        if (role) {
+
+          if (configs.images.gallery.menu && Array.isArray(configs.images.gallery.menu)) {
+
+            return (
+              configs.images &&
+              configs.images.gallery &&
+              configs.images.gallery.endpoint &&
+              configs.images.gallery.menu.includes(role)
+            );
+
+          } else return false;
+
+        } else {
+
+          return (
+            configs.images &&
+            configs.images.gallery &&
+            configs.images.gallery.endpoint &&
+            (!configs.images.gallery.menu || !configs.images.gallery.menu.length)
+          );
+
+        }
+        
       };
 
       service.getGalleryPath = function () {
@@ -1939,13 +1962,14 @@
       restrict: 'E',
       scope: false,
       templateUrl: 'html/side-menu.html',
-      controller: ['$scope', '$routeParams', '$location', 'common', 'models', 'customMenu', '$window', '$rootScope', function (
+      controller: ['$scope', '$routeParams', '$location', 'common', 'models', 'customMenu', 'loginProvider', '$window', '$rootScope', function (
         $scope,
         $routeParams,
         $location,
         common,
         models,
         customMenu,
+        loginProvider,
         $window,
         $rootScope
       ) {
@@ -1967,11 +1991,15 @@
             });
           });
 
-          if (models.isGalleryEnabled()) {
-            $scope.sections.add('Gallery', 'Gallery', {
-              clickTo: 'gallery',
-            });
-          }
+          loginProvider.getUser(function (user) {
+            
+            if (models.isGalleryEnabled(user ? user.role : null)) {
+              $scope.sections.add('Gallery', 'Gallery', {
+                clickTo: 'gallery',
+              });
+            }
+            
+          });
 
           models.getModels(function (m) {
             angular.forEach(m, function (schema) {

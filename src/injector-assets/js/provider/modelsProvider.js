@@ -550,12 +550,34 @@
         });
       };
 
-      service.isGalleryEnabled = function () {
-        return (
-          configs.images &&
-          configs.images.gallery &&
-          configs.images.gallery.endpoint
-        );
+      service.isGalleryEnabled = function (role) {
+        
+        console.log("Role: ", role, "Conf: ", configs.images.gallery);
+
+        if (role) {
+
+          if (configs.images.gallery.menu && Array.isArray(configs.images.gallery.menu)) {
+
+            return (
+              configs.images &&
+              configs.images.gallery &&
+              configs.images.gallery.endpoint &&
+              configs.images.gallery.menu.includes(role)
+            );
+
+          } else return false;
+
+        } else {
+
+          return (
+            configs.images &&
+            configs.images.gallery &&
+            configs.images.gallery.endpoint &&
+            (!configs.images.gallery.menu || !configs.images.gallery.menu.length)
+          );
+
+        }
+        
       };
 
       service.getGalleryPath = function () {
