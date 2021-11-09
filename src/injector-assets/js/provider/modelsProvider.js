@@ -551,12 +551,10 @@
       };
 
       service.isGalleryEnabled = function (role) {
-        
-        console.log("Role: ", role, "Conf: ", configs.images.gallery);
 
         if (role) {
 
-          if (configs.images.gallery.menu && Array.isArray(configs.images.gallery.menu)) {
+          if (configs.images && configs.images.gallery && configs.images.gallery.menu && Array.isArray(configs.images.gallery.menu)) {
 
             return (
               configs.images &&
@@ -565,7 +563,15 @@
               configs.images.gallery.menu.includes(role)
             );
 
-          } else return false;
+          } else {
+
+            return (
+              configs.images &&
+              configs.images.gallery &&
+              configs.images.gallery.endpoint
+            );
+
+          };
 
         } else {
 
